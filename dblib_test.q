@@ -14,26 +14,145 @@
 / rename_col:{[dbdir;tablename;oldname;newname]
 /     if[((`$oldname) in ac)and not (`$newname) in ac:allcols[dbdir;tablename]];
 / }
-
-upserttable:{[dbdir;tablename;tbl]
-    hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;
+tablename:"tbl";
+dbdir:"d:/db";
+gen_tbl:{[n]
+    ([]dt:(2016.01.01)+n?100; ti:asc n?24:00:00; sym:n?`ibm`aapl; qty:n?1000)
 };
 
-// todo
-upserttable_no_duplicate:{[dbdir;tablename;tbl;key_cols]
-    key_tab:@[{select date_time,inst from get x};writepath;([]date_time:();inst:())];
-   $[count key_tab;
-  	[dups:exec i from towrite where ([]date_time;inst) in key_tab;];
-  	dups:()];
-   $[count dups;
-     [out"Removed ",(string count dups)," duplicates from ctp_tick table";
-     towrite:select from towrite where not i in dups];
-     out"No duplicates found"];
-    hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;system "l ."; 
+upserttable:{[dbdir;tablename;tbl;log_path]    
+/     hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;
+    writepath:hsym[`$dbdir,"/",tablename,"/"];
+    0N!writepath;
+    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl);{dblog[log_path;"failed to upsert table ",writepath]}];
+    system "l ."; 
 };
-key_cols:("date";"code")
-`$key_cols
-@[factor;();0b;`$key_cols]
+test_upserttable:{
+    tbl:gen_tbl[100];
+    upserttable["d:/db";"tbl1";tbl;log_path];
+}
+test_upserttable[]
+
+upserttable_no_duplicate:{[dbdir;tablename;tbl;key_cols;log_path]
+    X::tablename;Y::tbl;Z::key_cols;
+    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl;log_path];`:];
+    kc:`$key_cols;
+    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
+    k2:?[tbl;();0b;(kc)!(kc)];
+    uk:k2 except k1;
+    to_upsert:lj[uk;kc xkey tbl];
+    upserttable[dbdir;tablename;to_upsert;log_path];
+};
+test_upserttable_no_duplicate:{[n]  // n:record number
+    tbl_no_dup:gen_tbl[100];
+    key_cols:("dt";"ti");
+    upserttable_no_duplicate["d:/db";"tbl_no_dup";tbl_no_dup;key_cols;log_path];
+}
+test_upserttable_no_duplicate[100]
+count select from tbl_no_dup
+\t test_upserttable_no_duplicate[100000] each til 10  // run 1000 times
+count select distinct dt,ti from tbl_no_dup
+
+
+pupserttable:{[dbdir;tablename;tbl;par_col;log_path]    // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
+    pars:?[tbl;();();`$par_col];
+    pars:distinct asc pars;
+    i:0;n:count pars;
+    while[i<n;    
+        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()]
+        par_tablename:raze string(pars[i]),"/",tablename;  
+        upserttable[dbdir;par_tablename;![tbl;();0b;enlist`$par_col];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        i+:1;
+    ];
+ }  
+
+ test_pupserttable:{
+    tbl:gen_tbl[100];
+    tbl:update m:dt.year from tbl
+    pupserttable["d:/db";"tbl2";tbl;"m";log_path]; 
+    dbdir:"d:/db";
+    tablename:"tbl_par_another";
+    par_col:"dt";
+    log_path:"d:/db.log";
+}
+
+guess_virtual_par_col:{[x]
+    tp:type(last x);
+    $[tp=-14;c:"date";tp=-13;c:"month";tp=-6h;c:"year";c:"int"];
+    c
+}
+$[tp=-14;
+guess_virtual_par_col[2016i]
+
+pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]    
+    // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
+    // key_cols同时也是sort_cols,且为code,par的形式, par 为date/month/year/int
+    pars:?[tbl;();();`$par_col];
+    pars:distinct asc pars;
+    i:0;n:count pars;
+    if[n>0;vir_par_col:guess_virtual_par_col[pars]];
+    while[i<n;    
+        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()]
+        par_tablename:raze string(pars[i]),"/",tablename;  
+        upserttable_no_duplicate_par_[dbdir;par_tablename;![tbl;();0b;enlist`$par_col];enlist sym_col;vir_par_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        sortandsetp[dbdir;par_tablename;enlist sym_col;log_path]
+        i+:1;
+    ];
+    .Q.chk hsym `$dbdir     //填充空值
+ }  
+test_pupserttable_no_duplication:{
+    tbl:gen_tbl[1000];
+    pupserttable_no_duplication["d:/db";"tbl";tbl;"dt";"sym";log_path]; 
+    dbdir:"d:/db";
+    tablename:"tbl";
+    par_col:"dt";
+    sym_col:"sym";
+    log_path:"d:/db.log";
+}
+select from tbl
+select from tbl_
+select date from tbl_ where date within 2016.01.02 2016.01.08
+select from hsym `$dbdir,"/",tablename
+tablename:X;tbl__:Y;vir_par_col:W;par:V;key_cols:Z
+upserttable_no_duplicate_par_:{[dbdir;tablename;tbl__;key_cols;vir_par_col;par;log_path]    
+    //dbdir:"d:/db" 
+    //tablename:"2016.01.01/tbl"    
+    X::tablename;Y::tbl__;Z::key_cols;W::vir_par_col;V::par;
+    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
+    kc:`$key_cols;    
+/     k1:?[hsym `$dbdir,"/",tablename;enlist(=;`$vir_par_col;par);0b;(kc)!(kc)];  
+    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];   // 指定磁盘地址读取数据，以防止出现同名的内存表
+    k2:?[tbl__;();0b;(kc)!(kc)];    
+    uk:k2 except k1;
+    to_upsert:lj[uk;kc xkey tbl__];
+    if[0<count to_upsert;upserttable[dbdir;tablename;to_upsert;log_path]];
+};
+delete k1 from `.
+disk_tbl:select from (hsym `$dbdir,"/",tablename)
+select from tbl
+?[disk_tbl;();0b;(kc)!(kc)]
+parse "select sym from disk_tbl"
+?[disk_tbl;();0b;kc!kc]
+parse "select from hsym `$dbdir,\"/\",tablename "
+tname 
+select from tbl where date=par
+\l .
+tbl
+
+select from tbl
+del_table:{[dbdir;tablename]
+    path_str:dbdir,"/",tablename;
+    if[1=havetable[dbdir;tablename];del pth[path_str]];
+    system "l ."; 
+}
+
+del_table["d:/db";"tbl"]
+havetable["d:/db";"tbl"]
+
+
+
+\a
+select from tbl
 
 batch:{[rt;tn;recs] hsym[`$rt,"/",tn,"/"] upsert .Q.en[hsym `$rt;] recs}
 dayrecs:{([] dt:x; ti:asc 100?24:00:00; sym:100?`ibm`aapl; qty:100*1+100?1000)}
@@ -42,6 +161,8 @@ appday dayrecs 2015.01.01
 
 recs:dayrecs 2015.01.02
 `:d:/db/trade/ upsert .Q.en[`:d:/db] recs
+
+select from trade
 
 ////////////////////////////////////////////////////////////////////////////////update entry by row,col
 //http://code.kx.com/q4m3/14_Introduction_to_Kdb+/                                 14.2.7 Manual Operations on a Splayed Directory
@@ -242,18 +363,32 @@ sortdb:{[partition;sortcols;log_path]
     sorted
 }
 
-sortandsetp["d:/db";"warehouse_receipt";("code";"date");log_path]
-sortandsetp:{[dbdir;tablename;sortcols;log_path]    
-    partition:hsym[`$dbdir,"/",tablename];
-    sortcols:`$sortcols;
-    parted:setattribute[partition;first sortcols;`p#]; 
-    if[not parted;    // if it fails, resort the table and set the attribute
-        0N!sortcols;
-        0N!partition;
-        sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];        
-        if[sorted;parted:setattribute[partition;first sortcols;`p#]]];     
-    $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];    
- }
+/ sortandsetp["d:/db";"warehouse_receipt";("code";"date");log_path]
+/ sortandsetp:{[dbdir;tablename;sortcols;log_path]    
+/     partition:hsym[`$dbdir,"/",tablename];
+/     sortcols:`$sortcols;
+/     parted:setattribute[partition;first sortcols;`p#]; 
+/     if[not parted;    // if it fails, resort the table and set the attribute
+/         0N!sortcols;
+/         0N!partition;
+/         sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];        
+/         if[sorted;parted:setattribute[partition;first sortcols;`p#]]];     
+/     $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];    
+/  }
+
+ dbdir:X;tablename:Y;sortcols:Z;   
+ sortcols:enlist "sym"
+sortandsetp:{[dbdir;tablename;sortcols;log_path]   
+X::dbdir;Y::tablename;Z::sortcols;     
+ partition:hsym[`$dbdir,"/",tablename];    
+ sortcols:`$sortcols;    
+ parted:setattribute[partition;first sortcols;`p#];     
+ if[not parted;        
+ sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];                
+ if[sorted;parted:setattribute[partition;first sortcols;`p#]]];         
+ $[parted; dblog[log_path;"`p# attribute set successfully"]; 
+ dblog[log_path;"ERROR - failed to set attribute"]];
+};  // 设置按sym排序，所有select结果将保持排序
 
 sortandsetp["d:/db";"warehouse_receipt";("code";"date");log_path]
 sortandsetp["d:/db";"quote";("code";"date");log_path]
@@ -264,4 +399,24 @@ select from product
 
 sortdb[`:d:/db/product;`code`lastdelivery_date;log_path]
 
-
+pupserttable_auto:{[dbdir;tablename;tbl;par_col;log_path]    // 按year/month/date自动分区，没什么鸟用
+    suffix:last("." vs par_col);
+    pars:?[tbl;();();`$par_col];
+    pars:distinct asc pars;
+    i:0;n:count pars;
+    while[i<n;    
+        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()]
+        par_tablename:raze suffix,"/",string(pars[i]),"/",tablename;  
+        upserttable[dbdir;par_tablename;tbl;log_path];
+        i+:1;
+    ];
+ } 
+ 
+test_pupserttable_auto:{
+    tbl:gen_tbl[100];
+    pupserttable["d:/db";"tbl_par";tbl;"dt.date";log_path];
+    dbdir:"d:/db";
+    tablename:"tbl_par";
+    par_col:"dt.year";
+    log_path:"d:/db.log";
+}

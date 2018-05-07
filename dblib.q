@@ -37,8 +37,7 @@ delete_col:{[dbdir;tablename;col;log_path]        col_d:hsym[`$dbdir,"/",tablena
 //setattribute[`:d:/db/quote;`code;`p#]     //succeed
 setattribute:{[partition;attrcol;attribute] .[{@[x;y;z];1b};(partition;attrcol;attribute);0b]}
 //      set the partition attribute (sort the table if required)
-/ sortandsetp[`:d:/db/product;`code`dlmonth;log_path]   //succeed
-/ sortandsetp[`:d:/db/quote;`contract`date;log_path]    //succeed
+/ sortandsetp["d:/db";"warehouse_receipt";("code";"date");log_path]
 sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"/",tablename];    sortcols:`$sortcols;    parted:setattribute[partition;first sortcols;`p#];     if[not parted;            0N!sortcols;        0N!partition;        sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];                if[sorted;parted:setattribute[partition;first sortcols;`p#]]];         $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];};  // 设置按date排序，所有select结果将保持排序
 //@[`:d:/db/quote;`date;`s#] //succeed
 //@[`:d:/db/product;`contract;`s#] //succeed

@@ -72,7 +72,7 @@ ren1table:{[old;new]stdout"renaming ",(string old)," to ",string new;.os.ren[old
 
 add1table:{[dbdir;tablename;table]
  stdout"adding ",string tablename;
- @[tablename;`;:;.Q.en[dbdir]0#table];}
+ @[tablename;`;:;.Q.en[dbdir]table];}
 
 stdout:{-1 raze[" "sv string`date`second$.z.P]," ",x;}
 validcolname:{(not x in `i,.Q.res,key`.q)and x = .Q.id x}
