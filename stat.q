@@ -1,0 +1,1 @@
+summary:{`count`mean`min`max`med`std!(count;avg;min;max;med;sdev)@\:x}

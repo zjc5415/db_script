@@ -49,6 +49,26 @@ sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"
 //updateentry[dbdir;"product";to_update`x;"contract_issuedate";to_update`contract_issuedate;log_path]
 
 //修复wind改名合约
+/ updateentry[dbdir;"product";exec i from product where code=`WS;"code";"WH";log_path]
+/ updateentry[dbdir;"product";exec i from product where code=`RO;"code";"OI";log_path];
+/ updateentry[dbdir;"product";exec i from product where code=`ER;"code";"RI";log_path]
+/ updateentry[dbdir;"product";exec i from product where code=`ME;"code";"MA";log_path]
+/ updateentry[dbdir;"product";exec i from product where code=`TC;"code";"ZC";log_path]
+/ updateentry[dbdir;"product";exec i from product where code=`WT;"code";"PM";log_path]
+
+/ updateentry[dbdir;"quote";exec i from quote where code=`WS;"code";"WH";log_path]
+/ updateentry[dbdir;"quote";exec i from quote where code=`RO;"code";"OI";log_path];
+/ updateentry[dbdir;"quote";exec i from quote where code=`ER;"code";"RI";log_path]
+/ updateentry[dbdir;"quote";exec i from quote where code=`ME;"code";"MA";log_path]
+/ updateentry[dbdir;"quote";exec i from quote where code=`TC;"code";"ZC";log_path]
+/ updateentry[dbdir;"quote";exec i from quote where code=`WT;"code";"PM";log_path]
+
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`WS;"code";"WH";log_path];
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`RO;"code";"OI";log_path];
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`ER;"code";"RI";log_path];
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`ME;"code";"MA";log_path];
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`TC;"code";"ZC";log_path];
+/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`WT;"code";"PM";log_path];
 
 // 行情表修复
 / .quote.refine:{    //remove null settle, ffill close for quote

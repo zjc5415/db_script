@@ -17,15 +17,19 @@
     mom_time:`float$();
     daily_yield_near:`float$();daily_yield_far:`float$();mom_basis_near_far:`float$();
     mom_warehouse_receipt:`float$();
-    adj_yield:`float$();
-    adj_ema:`float$();
+    adj_log_return:`float$();
+    adj_vol:`float$();
     adj_dev:`float$();
     adj_var:`float$();
-    adj_tr:`float$()
+    adj_tr:`float$();
+    filter_reason:`float$()
 )
 
 dbdir:"d:/db"
 upserttable[dbdir;"factor";.schema.factor]
+
+\t .factor.build[1984.01.01;2084.01.01] / 1128079
+\t .factor.build[2018.02.03;2018.02.21]
 / @[`:d:/db/factor;`date;`s#] //  第一次写入数据之前设置属性，s-fail
 
 //(meta key_tab)=meta .schema.factor  // check schema
@@ -39,8 +43,9 @@ start_date:2017.01.01;end_date:exec max date from quote;xcode:`AL;
 start_date:2010.01.01;end_date:2018.02.21;xcode:`AG;
 start_date:1984.01.01;end_date:2018.02.21;xcode:`AL;
 start_date:1984.01.01;end_date:2018.02.21;xcode:`A;
-start_date:1984.01.01;end_date:2018.02.21;xcode:`ER;
+start_date:1984.01.01;end_date:2018.02.21;xcode:`RI;
 start_date:1984.01.01;end_date:2018.02.21;xcode:`ZC;
+start_date:1984.01.01;end_date:2018.02.21;xcode:`RB;
 // 计算[start_date end_date]闭区间的所有因子值,注意赋值顺序，
 .factor.wrap:{[xcode;start_date;end_date]
     key_tab:.factor.main[xcode;start_date;end_date];
@@ -49,11 +54,20 @@ start_date:1984.01.01;end_date:2018.02.21;xcode:`ZC;
     key_tab^:.factor.first_contract[key_tab];
     key_tab^:.factor.secondary_contract[key_tab];
     key_tab^:.factor.nearest_contract[key_tab];
-    key_tab^:.factor.near_far1[key_tab];        // 持仓量最大的两个合约
+    key_tab^:.factor.roll_return3[key_tab];        // 展期收益率，主力，远月且持仓量最大
     key_tab^:.factor.mom_time[key_tab;`factor;`adjclose;40];
-    key_tab^:.factor.mom_basis2[key_tab;120];   // 最近月，远月且持仓量最大
+    key_tab^:.factor.mom_basis3[key_tab;120];   // 基差动量，最近月，主力，重合用1替代
     key_tab^:.factor.mom_warehouse_receipt[key_tab;89];
-    key_tab^:.factor.vix[key_tab;86;0.94];    
+    key_tab^:.factor.vix[key_tab;86;0.94];
+    
+    nb:avg each {{1 _ x, y}\[x#0.0;y]}[20;exec volume from key_tab];    // volume的20日均值
+    key_tab[`vol_avg]:nb;
+    key_tab[`filter_reason]:0.0;
+    key_tab:update filter_reason:filter_reason+1.0 from key_tab where i<180;
+    key_tab:update filter_reason:filter_reason+2.0 from key_tab where vol_avg<10000;
+    key_tab:delete vol_avg from key_tab;
+    
+    key_tab:update mom_time:0n,roll_return_near_far:0n,mom_basis_near_far:0n,mom_warehouse_receipt:0n from key_tab where filter_reason>0;   
     :key_tab;
 }
 key_tab
@@ -81,9 +95,7 @@ select date,code,mom_warehouse_receipt from key_tab where date>=2010.01.04,code=
     }[start_date;end_date] each distinct exec code from product where exch<>`CFE;   // CFE有两个仿真合约，AF1802-S/EF1802-S,
 }
 
-\t .factor.build[1984.01.01;2084.01.01] / 775589ms
 
-\t .factor.build[2018.02.03;2018.02.21]
 
 // 计算xcode在[start_date end_date]的主力合约，并与行情表左连接
 // 主力合约计算方法：连续两天持仓量最大，第三天收盘切换，第四天开盘生效
@@ -105,14 +117,14 @@ select date,code,mom_warehouse_receipt from key_tab where date>=2010.01.04,code=
     i:0;
     p:1!select contract,dlmonth from product where code=xcode;
     while[i<n;
-        if[(c_yy=c_yyy) & (c_yy<>mc) & p[c_yy][`dlmonth]>p[mc][`dlmonth];mc:c_yy];
+        if[(c_yy=c_yyy) & (c_yy<>mc) & p[c_yy][`dlmonth]>p[mc][`dlmonth];mc:c_yy];        
         r,:mc;
         c_yyy:c_yy;c_yy:c_y;c_y:key_tab[i][`contract];
         i+:1;
     ];
      
     key_tab: update contract:r from key_tab;    
-    :lj[key_tab;3!select from quote where date>=start_date,date<=end_date,code=xcode];    
+    :lj[key_tab;3!select from quote where date>=start_date,date<=end_date,code=xcode];        
 };
 
 key_tab:.factor.main[`AG;2017.01.01;.z.d-3]
@@ -174,7 +186,7 @@ newd:2012.07.26
 }
 
 //展期收益率： 持仓量最大的两个合约
-.factor.near_far1:{[key_tab]
+.factor.roll_return1:{[key_tab]
     nf:raze {2#`oi xdesc select date,contract,oi,settle from quote where date=x[`date],code=x[`code] }each select date,code from key_tab;   //选择oi最大的两个合约, 可能只有一个合约，退市时，ER
     nf:lj[nf;1!select contract,lasttrade_date from product];    
     n:select date,near_contract:contract,near_settle:settle,near_lasttrade_date:lasttrade_date from nf where  lasttrade_date=(min;lasttrade_date) fby date;
@@ -184,7 +196,7 @@ newd:2012.07.26
     :update roll_return_near_far:365*((log near_settle)-log far_settle)%((`date$far_lasttrade_date)-`date$near_lasttrade_date) from n^f;    
 }
 //展期收益率： 最大持仓量合约，远月且持仓量最大的合约
-.factor.near_far2:{[key_tab]
+.factor.roll_return2:{[key_tab]
     //选择oi最大的合约    
     max_oi:raze {1#`oi xdesc select date,code,contract,oi,settle from quote where date=x[`date],code=x[`code] }each select date,code from key_tab;   
     max_oi:lj[max_oi;1!select contract,lasttrade_date from product];
@@ -204,7 +216,7 @@ newd:2012.07.26
 }
 
 // key_tab主力合约，与远月且持仓量最大的合约
-.factor.near_far3:{[key_tab]
+.factor.roll_return3:{[key_tab]
     //选择主力合约
     max_oi:select date,code,contract,oi,settle from key_tab;
     max_oi:lj[max_oi;1!select contract,lasttrade_date from product];
@@ -222,7 +234,7 @@ newd:2012.07.26
     n:select near_contract:contract,near_settle:settle,near_lasttrade_date:lasttrade_date from max_oi;    
     f:select far_contract:contract,far_settle:settle,far_lasttrade_date:lasttrade_date from next_oi;
     
-    :update roll_return_near_far:365*((log near_settle)-log far_settle)%((`date$far_lasttrade_date)-`date$near_lasttrade_date) from n^f;    
+    :update roll_return_near_far:365*((log near_settle)-log far_settle)%((`date$far_lasttrade_date)-`date$near_lasttrade_date) from n^f;        
 }
 
 // 计算c列的动量，(close[0]-close[n])%close[n]
@@ -245,18 +257,18 @@ newd:2012.07.26
 
 // 计算展期收益率 期限结构为主力m（主力定义为连续两天持仓量最大，第三天收盘切换，第四天生效）和次主力s（持仓量第二大）
 // ((log pm) - log ps)*365%(ns-nm)
-/ .factor.roll_return:{[key_tab]
-/     m:lj[select contract,settle from key_tab;1!select contract,lasttrade_date from product];
-/     s:lj[select contract:secondary_contract,settle:secondary_settle from key_tab;1!select contract,lasttrade_date from product];
-/     :([]roll_return:365*((log exec settle from m) - (log exec settle from s))%((`date$exec lasttrade_date from s) -(`date$exec lasttrade_date from m)));   
-/ }
-
-// 计算展期收益率, 持仓量最大和持仓量第二大的两个合约的展期收益
 .factor.roll_return:{[key_tab]
-    m:lj[select contract:first_contract,settle:first_settle from key_tab;1!select contract,lasttrade_date from product];
+    m:lj[select contract,settle from key_tab;1!select contract,lasttrade_date from product];
     s:lj[select contract:secondary_contract,settle:secondary_settle from key_tab;1!select contract,lasttrade_date from product];
     :([]roll_return:365*((log exec settle from m) - (log exec settle from s))%((`date$exec lasttrade_date from s) -(`date$exec lasttrade_date from m)));   
 }
+
+// 计算展期收益率, 持仓量最大和持仓量第二大的两个合约的展期收益
+/ .factor.roll_return:{[key_tab]
+/     m:lj[select contract:first_contract,settle:first_settle from key_tab;1!select contract,lasttrade_date from product];
+/     s:lj[select contract:secondary_contract,settle:secondary_settle from key_tab;1!select contract,lasttrade_date from product];
+/     :([]roll_return:365*((log exec settle from m) - (log exec settle from s))%((`date$exec lasttrade_date from s) -(`date$exec lasttrade_date from m)));   
+/ }
 
 
 .quote.refine:{    //remove null settle, ffill close for quote
@@ -340,6 +352,31 @@ key_tab:tbl
     :(neg count key_tab)#([]daily_yield_near:ny;daily_yield_far:fy;mom_basis_near_far:nb-fb);    // 只去最后需要的数据
 };
 
+// 计算基差动量, 最近月合约，主力, 近月减远月，
+// 累乘(1+daily return of near) - 累乘(l+daily return of far)
+// n为基差累乘的周期数 n:120
+// care:两个合约可能重合，如ZC，前期很多重合，导致基差动量为1
+.factor.mom_basis3:{[key_tab;n]
+    xcode:key_tab[`code][0];
+    // 计算最近月的日收益
+    t:(select [neg n+1] date,nearest_contract,nearest_settle from factor where code=xcode,date<min key_tab[`date]),select date,nearest_contract,nearest_settle from key_tab;
+    t:update ref_contract:next nearest_contract from t;    
+    t:lj[t;2!select date,ref_contract:contract,ref_settle:settle from quote where code=xcode,date>=min t[`date],date<=max t[`date]];    //合约切换时对齐到上一个合约
+    ny:exec 1.0^(nearest_settle%prev ref_settle) from t;    
+    // 近月的基差(前n个收益相乘), prd sliding window
+    nb:prd each {{1 _ x, y}\[x#1.0;y]}[n;ny];    
+                
+    // 选择主力合约
+    tf:select date,far_contract:contract,far_settle:settle from key_tab;
+    tf:update ref_contract:next far_contract from tf;        
+    tf:lj[tf;2!select date,ref_contract:contract,ref_settle:settle from quote where code=xcode,date>=min tf[`date],date<=max tf[`date]];
+    fy:exec 1.0^(far_settle%prev ref_settle) from tf;
+    // 远月的基差(前n个收益相乘), prd sliding window
+    fb:prd each {{1 _ x, y}\[x#1.0;y]}[n;fy];     
+    
+    :(neg count key_tab)#([]daily_yield_near:ny;daily_yield_far:fy;mom_basis_near_far:nb-fb);    // 只去最后需要的数据
+};
+
 // 计算基差动量, 近月减远月, 近月远月的确认见near_far
 // 累乘(1+daily return of near) - 累乘(l+daily return of far)
 //  n为基差累乘的周期数 n:120
@@ -381,81 +418,15 @@ count adj_yield
     
     adj_h:exec adjclose from select [neg n] adjclose from factor where code=xcode,date<min key_tab[`date];
     adj_price:adj_h,exec adjclose from key_tab;
-    adj_yield:1 _ deltas log (first adj_price),adj_price;
-    adj_ema:last flip ema[1-c] each {{1 _ x, y}\[x#0.0;y]}[n;adj_yield];        // 每个窗口的ema
-    adj_dev:dev each {{1 _ x, y}\[x#1.0;y]}[n;adj_yield];                       
-    adj_var:var each {{1 _ x, y}\[x#1.0;y]}[n;adj_yield];    
-    r:(neg count key_tab)#([]adj_yield:adj_yield;adj_ema:adj_ema;adj_dev:adj_dev;adj_var:adj_var);    
+    adj_log_return:1 _ deltas log (first adj_price),adj_price;
+    adj_ema:last flip ema[1-c] each {{1 _ x, y}\[x#0.0;y]}[n;adj_log_return xexp 2];        // ewma计算波动率
+    adj_vol:sqrt adj_ema;
+    adj_dev:dev each {{1 _ x, y}\[x#1.0;y]}[n;adj_log_return];                       
+    adj_var:var each {{1 _ x, y}\[x#1.0;y]}[n;adj_log_return];    
+    r:(neg count key_tab)#([]adj_log_return;adj_vol;adj_dev:adj_dev;adj_var:adj_var);    
     
     :update adj_tr:adj_tr from r;    
 }
-
-select from factor where code=`A,date=1999.06.10
-select from quote where code=`A,date within 1999.06.06 1999.06.12
-select from factor where code=`AG,date>=2012.11.06
-select from quote where code=`AG,date>=2012.07.01,oi>=(max;oi) fby date
-
-ag:select from factor where code=`AG,date>=2012.11.06;
-ag:select date,code,contract,settle,secondary_contract,secondary_settle from ag;
-ag:lj[ag;1!select contract, lasttrade_date from product];
-ag:lj[ag;1!select secondary_contract:contract,secondary_lastttrade_date:lasttrade_date from product];
-update roll_return:365* ((log settle)-log secondary_settle)%((`date$secondary_lastttrade_date)-(`date$lasttrade_date)) from ag
-ag
-select from quote where date=2012.11.06,code=`AG
-
-ag1:ag
-
-ag1:update contract:`AG1306 from ag1
-ag1:delete settle,lasttrade_date from ag1
-ag1:lj[ag1;2!select date,contract,settle from quote where contract=`AG1306]
-ag1:lj[ag1;1!select contract,lasttrade_date from product where contract=`AG1306]
-update roll_return:365* ((log settle)-log secondary_settle)%((`date$secondary_lastttrade_date)-(`date$lasttrade_date)) from ag1
-
-
-c1:`AG1812;c2:`AG1806;day:2012.11.06
-c1:`AG1301;c2:`AG1212;day:2012.11.06
-roll_return[c1;c2;day]
-roll_return:{[c1;c2;day]
-    p1:first exec settle from quote where contract = c1,date=day;
-    p2:first exec settle from quote where contract = c2,date=day;
-    t1:first exec lasttrade_date from product where contract = c1;
-    t2:first exec lasttrade_date from product where contract = c2;
-    ((log p2)-log p1)*365%((`date$t1)-`date$t2)
-}
-
-roll_return[`AG1301;`AG1306;2012.11.06]
-roll_return[`AG1301;`AG1306;2012.11.07]
-`oi xdesc select from quote where code=`AG,date=2012.11.06
-
-roll_return[`AG1301;`AG1212;2012.11.07]
-roll_return[`AG1306;`AG1312;2013.02.22]
-roll_return[`AG1312;`AG1306;2013.05.06]
-
-roll_return[`AU1812;`AG1806;2018.01.31]
-roll_return[`AU1812;`AU1806;2018.02.02]
-
-select date,code,contract from factor where code=`AG
-select from factor where code=`AG
-
-
-key_tab
-select date,roll_return_near_far from key_tab where date>=2012.11.06
-select from quote where date=2013.05.06,code=`AG
-select date,roll_return_near_far from key_tab where date>=2010.01.08
-select from key_tab where date>=2010.01.08
-`oi xdesc select from quote where code=`AL,date=2010.01.08
-
-期货数据明细：展期收益率：2018.02.02 0.05496
-次主力:AG1812,主力AG1806
-收盘价：3932 3824
-结算价：3931 3823
-交割日：2018.12.24 2018.06.25
-相差天数：182
-((log 3824)-log 3932)*365%185 = -0.0558554
-((log 3823)-log 3931)*365%185
-
-select date,mom_basis_near_far from factor where code=`AG,date>=2013.03.06
-select date,mom_basis_near_far from factor where code=`AL,date>=2010.07.05
 
 // 计算仓单变化率的动量，参考周期n为90，实际是n:89
 .factor.mom_warehouse_receipt:{[key_tab;n]
@@ -463,114 +434,12 @@ select date,mom_basis_near_far from factor where code=`AL,date>=2010.07.05
     his_w:select [neg n] from warehouse_receipt where code=xcode,date<min key_tab[`date];    
     new_w:lj[select date,code from key_tab;2!select from warehouse_receipt where code=xcode,date>=min key_tab[`date],date<=max key_tab[`date]];    
     w:his_w,new_w;
+    
+    w:update warehouse_receipt:0n from w where warehouse_receipt=0; // 仓单库存为0时，设为nan
+    
     new_n:count key_tab;
     shift_w:new_n#((new_n+n-count w)#1#w),w;    
     wd:update shift_warehouse_receipt:shift_w[`warehouse_receipt] from new_w;
+    
     :select mom_warehouse_receipt:(warehouse_receipt-shift_warehouse_receipt)%shift_warehouse_receipt from wd;
 }
-
-//compare 
-
-//ht_mom_time:("DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; enlist ",") 0: `:d:/20180206_mom_time.csv;
-//upserttable["d:/db";"ht_mom_time";ht_mom_time]
-comp_mom_time:{[xcode]
-    to_comp:flip ?[ht_mom_time;();();`date`ht!`date,xcode];
-    f:select date,code,mom_time from factor where code=xcode,date>=min to_comp[`date];    
-    to_comp:update date:`timestamp$date from to_comp;
-    :lj[f;1!to_comp];
-}
-select from product where code=`CY
-select from quote where code=`CY
-select date,CY from ht_mom_time
-delete code from comp_mom_time[`MA]
-
-MA 2014.12.04
-`oi xdesc select from quote where code=`MA,date=2014.12.04
-select from factor where code=`MA,date>=2014.11.01
-
-//ht_roll_return:("DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; enlist ",") 0: `:d:/20180206_roll_return.csv;
-//upserttable["d:/db";"ht_roll_return";ht_roll_return]
-comp_roll_return:{[xcode]
-    to_comp:flip ?[ht_roll_return;();();`date`ht!`date,xcode];
-    f:select date,code,roll_return_near_far from factor where code=xcode,date>=min to_comp[`date];    
-    to_comp:update date:`timestamp$date from to_comp;
-    :lj[f;1!to_comp];
-}
-comp_roll_return[`RB]
-
-//ht_mom_basis:("DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; enlist ",") 0: `:d:/20180206_mom_basis.csv;
-//upserttable["d:/db";"ht_mom_basis";ht_mom_basis]
-comp_mom_basis:{[xcode]
-    to_comp:flip ?[ht_mom_basis;();();`date`ht!`date,xcode];
-    f:select date,code,mom_basis_near_far from factor where code=xcode,date>=min to_comp[`date];    
-    to_comp:update date:`timestamp$date from to_comp;
-    :lj[f;1!to_comp];
-}
-
-comp_mom_basis[`ZC]
-MA ZC差距较大
-B一模一样,但是有大量的nan值
-
-OI select from quote where code=`OI,date=2012.07.16
-OI,RI,WH,ZC开始不一致，可能是合约换名导致的
-
-//ht_mom_warehouse_receipt:("DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; enlist ",") 0: `:d:/20180206_mom_warehouse_receipt.csv;
-//upserttable["d:/db";"ht_warehouse_receipt";ht_mom_warehouse_receipt]
-comp_mom_warehouse_receipt:{[xcode]
-    to_comp:flip ?[ht_mom_warehouse_receipt;();();`date`ht!`date,xcode];
-    f:select date,code,mom_warehouse_receipt from factor where code=xcode,date>=min to_comp[`date];    
-    to_comp:update date:`timestamp$date from to_comp;
-    :lj[f;1!to_comp];
-}
-comp_mom_warehouse_receipt[`AG]
-
-// functinal compare
-c:`mom_basis_near_far;
-comp_factor[`AL;t;xcode;c]
-    f:select date,code,mom_basis_near_far from factor where code=xcode;
-    f:flip
-    conditions:(=;`code;xcode);       
-    ?[factor;conditions;();`date]
-    to_comp:flip ?[ht_mom_basis;();();`date`ht!`date,xcode];
-    to_comp:update date:`timestamp$date from to_comp;
-    :lj[f;1!to_comp];
-}
-conditions:((=;`code;xcode));       
-?[factor;();0b;()]
-?[factor;conditions;();`code]
-
-flip ?[key_tab;();();`date`c1`c2!`date`code`open]
-x:`adjclose
-flip ?[factor;();();(`date`code,x)!`date`code,x]
-{flip ?[factor;();();(`date`code,x)!`date`code,x]}`adjclose
-
-    listc:?[key_tab;();();c];      //从 key_tab中选择c列数据，
-    key_tab
-    ?[key_tab;();();`date`code]
-    conditions:((<;`date;min key_tab[`date]);(=;`code;key_tab[`code][0]));       
-    ref:(neg n ) sublist ?[t;conditions;();c];                                  //从factor中选择c列的最后n个值，不足n个则保留有效值,ref 可能为空   
-    
-    
-select from quote where code=`AL,date=2012.02.21
-factor
-select date,adj_dev from factor where code=`AU
-ag:select date,adj_dev from factor where code=`AG
-ag
-ag_adj_yield:select date,adj_yield from factor where code=`AG
-ag_adj_yield
-sdev -86#exec adj_yield from ag_adj_yield
-
-select from trade
-select by product from trade
-
-select datetime,return from pperf where datetime>=2010.01.01
-
-select datetime,return from performance where code=`AU
-select from performance where code=`AU
-
-select from performance
-
-select sum cp,sum hp,fee,slip,margin,pos_cost,net_profit,amt,drawdown_amt by datetime from (select by datetime,product from trade)
-select sum vol,sum price by datetime from (select by datetime,product from trade)
-
-select datetime,margin from pperf
