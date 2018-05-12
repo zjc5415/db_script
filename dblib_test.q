@@ -17,7 +17,7 @@
 tablename:"tbl";
 dbdir:"d:/db";
 gen_tbl:{[n]
-    ([]dt:(2016.01.01)+n?100; ti:asc n?24:00:00; sym:n?`ibm`aapl; qty:n?1000)
+    ([]dt:(2016.01.01)+n?150; ti:asc n?24:00:00; sym:n?`ibm`aapl; qty:n?1000)
 };
 
 upserttable:{[dbdir;tablename;tbl;log_path]    
@@ -30,7 +30,7 @@ upserttable:{[dbdir;tablename;tbl;log_path]
 test_upserttable:{
     tbl:gen_tbl[100];
     upserttable["d:/db";"tbl1";tbl;log_path];
-}
+};
 test_upserttable[]
 
 upserttable_no_duplicate:{[dbdir;tablename;tbl;key_cols;log_path]
@@ -84,7 +84,7 @@ guess_virtual_par_col:{[x]
 $[tp=-14;
 guess_virtual_par_col[2016i]
 
-pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]    
+pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;key_cols;log_path]    
     // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
     // key_cols同时也是sort_cols,且为code,par的形式, par 为date/month/year/int
     pars:?[tbl;();();`$par_col];
@@ -93,19 +93,19 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]
     while[i<n;    
         towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
-        upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];enlist sym_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
-        sortandsetp[dbdir;par_tablename;enlist sym_col;log_path]
+        upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        sortandsetp[dbdir;par_tablename;key_cols;log_path]
         i+:1;
     ];
     .Q.chk hsym `$dbdir     //填充空值
  }  
 test_pupserttable_no_duplication:{
-    tbl:gen_tbl[10000];
-    pupserttable_no_duplication["d:/db";"trade";tbl;"dt";"sym";log_path]; 
+    tbl:gen_tbl[1000];
+    pupserttable_no_duplication["d:/db";"trade";tbl;"dt";("sym";"ti");log_path]; 
     dbdir:"d:/db";
     tablename:"tbl";
     par_col:"dt";
-    sym_col:"sym";
+    key_cols:enlist "sym";
     log_path:"d:/db.log";
 }
 delete tbl from `.
