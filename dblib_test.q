@@ -20,11 +20,11 @@ gen_tbl:{[n]
     ([]dt:(2016.01.01)+n?150; ti:asc n?24:00:00; sym:n?`ibm`aapl; qty:n?1000)
 };
 
-upserttable:{[dbdir;tablename;tbl;log_path]    
-/     hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;
+upserttable:{[dbdir;tablename;tbl__;log_path]    
+/     hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl__;
     writepath:hsym[`$dbdir,"/",tablename,"/"];
     0N!writepath;
-    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl);{dblog[log_path;"failed to upsert table ",writepath]}];
+    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table ",writepath]}];
     system "l ."; 
 };
 test_upserttable:{
@@ -33,14 +33,14 @@ test_upserttable:{
 };
 test_upserttable[]
 
-upserttable_no_duplicate:{[dbdir;tablename;tbl;key_cols;log_path]
-    X::tablename;Y::tbl;Z::key_cols;
-    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl;log_path];`:];
+upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
+    X::tablename;Y::tbl__;Z::key_cols;
+    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
     kc:`$key_cols;
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
-    k2:?[tbl;();0b;(kc)!(kc)];
+    k2:?[tbl__;();0b;(kc)!(kc)];
     uk:k2 except k1;
-    to_upsert:lj[uk;kc xkey tbl];
+    to_upsert:lj[uk;kc xkey tbl__];
     upserttable[dbdir;tablename;to_upsert;log_path];
 };
 test_upserttable_no_duplicate:{[n]  // n:record number
@@ -54,14 +54,14 @@ count select from tbl_no_dup
 count select distinct dt,ti from tbl_no_dup
 
 
-pupserttable:{[dbdir;tablename;tbl;par_col;log_path]    // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
-    pars:?[tbl;();();`$par_col];
+pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]    // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
+    pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
     i:0;n:count pars;
     while[i<n;    
-        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()]
+        towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()]
         par_tablename:raze string(pars[i]),"/",tablename;  
-        upserttable[dbdir;par_tablename;![tbl;();0b;enlist`$par_col];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        upserttable[dbdir;par_tablename;![tbl__;();0b;enlist`$par_col];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         i+:1;
     ];
  }  
@@ -84,14 +84,14 @@ guess_virtual_par_col:{[x]
 $[tp=-14;
 guess_virtual_par_col[2016i]
 
-pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;key_cols;log_path]    
+pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]    
     // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
     // key_cols同时也是sort_cols,且为code,par的形式, par 为date/month/year/int
-    pars:?[tbl;();();`$par_col];
+    pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
     i:0;n:count pars;    
     while[i<n;    
-        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()];
+        towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
         upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         sortandsetp[dbdir;par_tablename;key_cols;log_path]
