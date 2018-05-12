@@ -92,9 +92,9 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]
     i:0;n:count pars;
     if[n>0;vir_par_col:guess_virtual_par_col[pars]];
     while[i<n;    
-        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()]
+        towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
-        upserttable_no_duplicate_par_[dbdir;par_tablename;![tbl;();0b;enlist`$par_col];enlist sym_col;vir_par_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];enlist sym_col;vir_par_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         sortandsetp[dbdir;par_tablename;enlist sym_col;log_path]
         i+:1;
     ];
@@ -102,13 +102,15 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]
  }  
 test_pupserttable_no_duplication:{
     tbl:gen_tbl[1000];
-    pupserttable_no_duplication["d:/db";"tbl";tbl;"dt";"sym";log_path]; 
+    pupserttable_no_duplication["d:/db";"trade";tbl;"dt";"sym";log_path]; 
     dbdir:"d:/db";
     tablename:"tbl";
     par_col:"dt";
     sym_col:"sym";
     log_path:"d:/db.log";
 }
+delete tbl from `.
+
 select from tbl
 select from tbl_
 select date from tbl_ where date within 2016.01.02 2016.01.08
