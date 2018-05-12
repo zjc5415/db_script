@@ -44,9 +44,9 @@ upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
     upserttable[dbdir;tablename;to_upsert;log_path];
 };
 test_upserttable_no_duplicate:{[n]  // n:record number
-    tbl_no_dup:gen_tbl[100];
+    tbl_no:gen_tbl[100];
     key_cols:("dt";"ti");
-    upserttable_no_duplicate["d:/db";"tbl_no_dup";tbl_no_dup;key_cols;log_path];
+    upserttable_no_duplicate["d:/db";"tbl_no_dup_";tbl_no;key_cols;log_path];
 }
 test_upserttable_no_duplicate[100]
 count select from tbl_no_dup
@@ -59,17 +59,18 @@ pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]    // 一个db貌似只�
     pars:distinct asc pars;
     i:0;n:count pars;
     while[i<n;    
-        towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()]
+        towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
-        upserttable[dbdir;par_tablename;![tbl__;();0b;enlist`$par_col];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        upserttable[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         i+:1;
     ];
+    .Q.chk hsym `$dbdir     //填充空值
  }  
 
  test_pupserttable:{
     tbl:gen_tbl[100];
     tbl:update m:dt.year from tbl
-    pupserttable["d:/db";"tbl2";tbl;"m";log_path]; 
+    pupserttable["d:/db";"tbl2";tbl;"dt";log_path]; 
     dbdir:"d:/db";
     tablename:"tbl_par_another";
     par_col:"dt";
