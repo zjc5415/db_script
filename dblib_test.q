@@ -89,19 +89,18 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl;par_col;sym_col;log_path]
     // key_cols同时也是sort_cols,且为code,par的形式, par 为date/month/year/int
     pars:?[tbl;();();`$par_col];
     pars:distinct asc pars;
-    i:0;n:count pars;
-    if[n>0;vir_par_col:guess_virtual_par_col[pars]];
+    i:0;n:count pars;    
     while[i<n;    
         towrite:?[tbl;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
-        upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];enlist sym_col;vir_par_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
+        upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];enlist sym_col;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         sortandsetp[dbdir;par_tablename;enlist sym_col;log_path]
         i+:1;
     ];
     .Q.chk hsym `$dbdir     //填充空值
  }  
 test_pupserttable_no_duplication:{
-    tbl:gen_tbl[1000];
+    tbl:gen_tbl[10000];
     pupserttable_no_duplication["d:/db";"trade";tbl;"dt";"sym";log_path]; 
     dbdir:"d:/db";
     tablename:"tbl";
@@ -116,13 +115,12 @@ select from tbl_
 select date from tbl_ where date within 2016.01.02 2016.01.08
 select from hsym `$dbdir,"/",tablename
 tablename:X;tbl__:Y;vir_par_col:W;par:V;key_cols:Z
-upserttable_no_duplicate_par_:{[dbdir;tablename;tbl__;key_cols;vir_par_col;par;log_path]    
+upserttable_no_duplicate_par_:{[dbdir;tablename;tbl__;key_cols;par;log_path]    
     //dbdir:"d:/db" 
     //tablename:"2016.01.01/tbl"    
-    X::tablename;Y::tbl__;Z::key_cols;W::vir_par_col;V::par;
+    X::tablename;Y::tbl__;Z::key_cols;V::par;
     if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
     kc:`$key_cols;    
-/     k1:?[hsym `$dbdir,"/",tablename;enlist(=;`$vir_par_col;par);0b;(kc)!(kc)];  
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];   // 指定磁盘地址读取数据，以防止出现同名的内存表
     k2:?[tbl__;();0b;(kc)!(kc)];    
     uk:k2 except k1;
