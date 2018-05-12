@@ -65,7 +65,7 @@ pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]    // 一个db貌似只�
         i+:1;
     ];
     .Q.chk hsym `$dbdir     //填充空值
- }  
+ };  
 
  test_pupserttable:{
     tbl:gen_tbl[100];
@@ -108,7 +108,7 @@ test_pupserttable_no_duplication:{
     par_col:"dt";
     key_cols:enlist "sym";
     log_path:"d:/db.log";
-}
+};
 delete tbl from `.
 
 select from tbl

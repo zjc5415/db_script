@@ -37,10 +37,17 @@ delete_col:{[dbdir;tablename;col;log_path]        col_d:hsym[`$dbdir,"/",tablena
 //setattribute[`:d:/db/quote;`code;`p#]     //succeed
 setattribute:{[partition;attrcol;attribute] .[{@[x;y;z];1b};(partition;attrcol;attribute);0b]}
 //      set the partition attribute (sort the table if required)
-/ sortandsetp["d:/db";"warehouse_receipt";("code";"date");log_path]
+/ sortandsetp[`:d:/db/product;`code`dlmonth;log_path]   //succeed
+/ sortandsetp[`:d:/db/quote;`contract`date;log_path]    //succeed
 sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"/",tablename];    sortcols:`$sortcols;    parted:setattribute[partition;first sortcols;`p#];     if[not parted;            0N!sortcols;        0N!partition;        sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];                if[sorted;parted:setattribute[partition;first sortcols;`p#]]];         $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];};  // 设置按date排序，所有select结果将保持排序
 //@[`:d:/db/quote;`date;`s#] //succeed
 //@[`:d:/db/product;`contract;`s#] //succeed
+
+upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table ",writepath]}];    system "l ."; };
+upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];    kc:`$key_cols;    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];    uk:k2 except k1;    to_upsert:lj[uk;kc xkey tbl__];    upserttable[dbdir;tablename;to_upsert;log_path];};
+pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;    while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];log_path];         i+:1;    ];    .Q.chk hsym `$dbdir };  
+pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;        while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;pars[i];log_path];        sortandsetp[dbdir;par_tablename;key_cols;log_path]        i+:1;    ];    .Q.chk hsym `$dbdir };
+upserttable_no_duplicate_par_:{[dbdir;tablename;tbl__;key_cols;par;log_path]        if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];    kc:`$key_cols;        k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];        uk:k2 except k1;    to_upsert:lj[uk;kc xkey tbl__];    if[0<count to_upsert;upserttable[dbdir;tablename;to_upsert;log_path]];};
 
 // todo
 //修复wind发行日大于交割日的合约
