@@ -42,7 +42,7 @@ upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
     k2:?[tbl__;();0b;(kc)!(kc)];
     uk:k2 except k1;
-    $[(count cols uk)=(count kc);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
+    $[(cols uk)~(cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
     upserttable[dbdir;tablename;to_upsert;log_path];
 };
 test_upserttable_no_duplicate:{[n]  // n:record number
