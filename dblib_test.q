@@ -30,19 +30,20 @@ upserttable:{[dbdir;tablename;tbl__;log_path]
 test_upserttable:{
     tbl:gen_tbl[100];
     upserttable["d:/db";"tbl1";tbl;log_path];
+    tablename:"test"
+    tbl__:tbl
 };
 test_upserttable[]
 
-tablename:X;tbl__:Y;key_cols:Z;
-dbdir:"d:/db_cache_wind_rdf"
+tablename:X;tbl__:Y;key_cols:Z;dbdir:W;log_path:V;
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
-    X::tablename;Y::tbl__;Z::key_cols;
+    X::tablename;Y::tbl__;Z::key_cols;W::dbdir;V::log_path;
     if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
     kc:`$key_cols;
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
     k2:?[tbl__;();0b;(kc)!(kc)];
     uk:k2 except k1;
-    $[(cols uk)~(cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
+    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
     upserttable[dbdir;tablename;to_upsert;log_path];
 };
 test_upserttable_no_duplicate:{[n]  // n:record number
@@ -86,20 +87,19 @@ guess_virtual_par_col:{[x]
 }
 $[tp=-14;
 guess_virtual_par_col[2016i]
-tablename:X;tbl__:Y;key_cols:Z;par_col:W;
+tablename:X;tbl__:Y;key_cols:Z;par_col:W;dbdir:V;log_path:U;
 dbdir:"d:/db_cache_wind_rdf"
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]    
     // 一个db貌似只支持一个类型的分区，如year和date，不能同时在一个db下分区,\l 会提示part错误
     // key_cols同时也是sort_cols,且为code,par的形式, par 为date/month/year/int
     // key_cols不包含par_col
-    X::tablename;Y::tbl__;Z::key_cols;W::par_col;
+    X::tablename;Y::tbl__;Z::key_cols;W::par_col;V::dbdir;U::log_path;
     pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
     i:0;n:count pars;    
     while[i<n;    
         towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];
         par_tablename:raze string(pars[i]),"/",tablename;  
-/         upserttable_no_duplicate_par_[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;pars[i];log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         upserttable_no_duplicate[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;log_path]; //删除par_col，vir col 自动推断，date,year,month,int
         sortandsetp[dbdir;par_tablename;key_cols;log_path]
         i+:1;
@@ -117,23 +117,6 @@ test_pupserttable_no_duplication:{
 };
 delete tbl from `.
 
-select from tbl
-select from tbl_
-select date from tbl_ where date within 2016.01.02 2016.01.08
-select from hsym `$dbdir,"/",tablename
-tablename:X;tbl__:Y;par:V;key_cols:Z
-upserttable_no_duplicate_par_:{[dbdir;tablename;tbl__;key_cols;par;log_path]    
-    //dbdir:"d:/db" 
-    //tablename:"2016.01.01/tbl"    
-/     X::tablename;Y::tbl__;Z::key_cols;V::par;
-    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
-    kc:`$key_cols;    
-    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];   // 指定磁盘地址读取数据，以防止出现同名的内存表
-    k2:?[tbl__;();0b;(kc)!(kc)];    
-    uk:k2 except k1;
-    $[(count cols uk)=(count kc);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];  //全部是key_cols，不执行lj， 避免xkey出错
-    if[0<count to_upsert;upserttable[dbdir;tablename;to_upsert;log_path]];
-};
 delete k1 from `.
 disk_tbl:select from (hsym `$dbdir,"/",tablename)
 select from tbl
