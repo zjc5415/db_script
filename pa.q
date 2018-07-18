@@ -26,3 +26,12 @@ select from fa_summary
 
 10#select from fcov
 `date xdesc select from fcov where stock_code=`000001
+
+cov1:select date,ticker,COV from factor where ticker=`1
+cov2:select from df_cov_month where wind_code=`000001.SZ 
+cov3:select from df_cov_month_nature_day where wind_code=`000001.SZ 
+cov1
+cov2
+cov3
+
+df_cov_month_nature_day

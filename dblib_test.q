@@ -24,7 +24,7 @@ upserttable:{[dbdir;tablename;tbl__;log_path]
 /     hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl__;
     writepath:hsym[`$dbdir,"/",tablename,"/"];
     0N!writepath;
-    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table ",writepath]}];
+    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];
     system "l ."; 
 };
 test_upserttable:{
@@ -418,4 +418,10 @@ test_pupserttable_auto:{
     tablename:"tbl_par";
     par_col:"dt.year";
     log_path:"d:/db.log";
+}
+test_delete_par_table:{
+    list_dir:{reverse hsym[x],.Q.dd'[hsym x;key hsym x]};
+    file_list : raze list_dir each allpaths[`:/home/quser/db_csv;`factorneu20180629_mcy];
+    {if[not ()~key x;hdel x]} each file_list;
+    system "l .";
 }

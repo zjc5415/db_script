@@ -23,7 +23,7 @@ newtable:{[dbdir;tablename;tbl]hsym[`$dbdir,"/",tablename,"/"] set .Q.en[hsym `$
 // 异常情况举例：tbl某列的类型与原有的表不一致则该列append失败，其他列正常更新。
 //todo: check disk db exist
 //todo: check meta tbl same as disk db
-upserttable:{[dbdir;tablename;tbl]hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;system "l ."; };
+//upserttable:{[dbdir;tablename;tbl]hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl;system "l ."; };
 //todo: checkt type of val same as entry in disk db
 //todo: issues about lock, test multithread modify
 / updateentry:{[dbdir;tablename;row;col;val;log_path] db:hsym[`$dbdir,"/",tablename];db_col:hsym[`$dbdir,"/",tablename,"/",col];col_d:hsym[`$dbdir,"/",tablename,"/",".d"];    if[0=count exec i from db;dblog[log_path;"updateentry failed, table[",tablename,"] is empty"];:-1];    if[(0=count key db_col) or (not (`$col) in get col_d);dblog[log_path;"updateentry failed, ",(string db_col)," not exist"];:-1];    col_type:value "type exec first ",col," from ",tablename;    if[col_type<>type first val;dblog[log_path;"updateentry failed,type"];:-1];        db_col set @[get db_col;row;:;val];            system "l .";    :0;};
@@ -43,7 +43,7 @@ sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"
 //@[`:d:/db/quote;`date;`s#] //succeed
 //@[`:d:/db/product;`contract;`s#] //succeed
 
-upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table ",writepath]}];    system "l ."; };
+upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];    system "l ."; };
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];    kc:`$key_cols;    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];    uk:k2 except k1;    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];    upserttable[dbdir;tablename;to_upsert;log_path];};
 pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;    while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];log_path];         i+:1;    ];    .Q.chk hsym `$dbdir };  
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;        while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable_no_duplicate[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;log_path];        sortandsetp[dbdir;par_tablename;key_cols;log_path]        i+:1;    ];    .Q.chk hsym `$dbdir };
