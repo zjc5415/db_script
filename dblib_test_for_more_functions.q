@@ -48,3 +48,5 @@ b:select from dfzq_con_ep_fy1
 select from a
 100#select from factor
 select from record
+
+select date, stock_code, gg_con_npg,gg_con_np_change_13w from factor where date>2018.01.01

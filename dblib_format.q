@@ -124,11 +124,16 @@ tbl__:gen_tbl[1];
 tbl__:select sym,ti,qty from gen_tbl[1];
 log_path:"d:/tmp.log";
 upserttable[dbdir;table_path;tbl__;log_path]
+
+dbdir:X;table_path:Y;log_path:V;
 \
-upserttable:{[dbdir;table_path;tbl__;log_path]   
+upserttable:{[dbdir;table_path;tbl__;log_path]
     //注意table_path包含partition的情况，如2016.01.10/ptable,
     //只支持splayed table/partitioned table,且后者tbl__不包含partition那一列
-    if[is_debug_mode;0N!"***********upserttable***************";0N!dbdir;0N!table_path;0N!show tbl__;0N!log_path];
+    if[is_debug_mode;
+        X::dbdir;Y::table_path;V::log_path;
+        0N!"***********upserttable***************";0N!dbdir;0N!table_path;0N!show 2#tbl__;0N!log_path
+    ];
     system "l .";   /从磁盘加载数据，保证meta能成功
     table_sym:`$last "/" vs table_path;
     table_type:value ".Q.qp ",string table_sym;
@@ -154,7 +159,7 @@ log_path:"d:/tmp.log";
 pupserttable[dbdir;tablename;tbl__;par_col;log_path]
 \     
 pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]
-    if[is_debug_mode;0N!"***********pupserttable***************";0N!dbdir;0N!tablename;0N!show tbl__;0N!par_col;0N!log_path];
+    if[is_debug_mode;0N!"***********pupserttable***************";0N!dbdir;0N!tablename;0N!show 2#tbl__;0N!par_col;0N!log_path];
     pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
     i:0;n:count pars;
@@ -173,9 +178,12 @@ tbl__:gen_tbl[10];
 key_cols:enlist("sym");
 log_path:"d:/tmp.log";
 upserttable_no_duplicate[dbdir;tablename;tbl__;par_col;log_path]
+tablename:X;tbl__:Y;key_cols:Z;dbdir:W;log_path:V;
 \     
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
-    if[is_debug_mode;0N!"***********upserttable_no_duplicate***************";0N!dbdir;0N!tablename;0N!show tbl__;0N!key_cols;0N!log_path];
+    if[is_debug_mode;
+        X::tablename;Y::tbl__;Z::key_cols;W::dbdir;V::log_path;
+        0N!"***********upserttable_no_duplicate***************";0N!dbdir;0N!tablename;0N!show 2#tbl__;0N!key_cols;0N!log_path];
     if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];
     kc:`$key_cols;    
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
@@ -185,7 +193,7 @@ upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
     upserttable[dbdir;tablename;to_upsert;log_path];}
     
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]
-    if[is_debug_mode;0N!"***********pupserttable_no_duplication***************";0N!dbdir;0N!tablename;0N!show tbl__;0N!par_col;0N!key_cols;0N!log_path];
+    if[is_debug_mode;0N!"***********pupserttable_no_duplication***************";0N!dbdir;0N!tablename;0N!show 2#tbl__;0N!par_col;0N!key_cols;0N!log_path];
     pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
     i:0;n:count pars;

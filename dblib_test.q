@@ -15,13 +15,16 @@
 /     if[((`$oldname) in ac)and not (`$newname) in ac:allcols[dbdir;tablename]];
 / }
 tablename:"tbl";
-dbdir:"d:/db";
+dbdir:"d:/db_test_partition";
 gen_tbl:{[n]
     ([]dt:(2016.01.01)+n?150; ti:asc n?24:00:00; sym:n?`ibm`aapl; qty:n?1000)
 };
 
+dbdir:X;tablename:Y;log_path:V;
+tablename:"2016.01.07/ptable"
 upserttable:{[dbdir;tablename;tbl__;log_path]    
 /     hsym[`$dbdir,"/",tablename,"/"] upsert .Q.en[hsym `$dbdir;] tbl__;
+    X::dbdir;Y::tablename;V::log_path;
     writepath:hsym[`$dbdir,"/",tablename,"/"];
     0N!writepath;
     .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];
@@ -37,15 +40,17 @@ test_upserttable[]
 
 tablename:X;tbl__:Y;key_cols:Z;dbdir:W;log_path:V;
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
-    X::tablename;Y::tbl__;Z::key_cols;W::dbdir;V::log_path;
-    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];
-    kc:`$key_cols;
+    if[is_debug_mode;
+        X::tablename;Y::tbl__;Z::key_cols;W::dbdir;V::log_path;
+        0N!"***********upserttable_no_duplicate***************";0N!dbdir;0N!tablename;0N!show 2#tbl__;0N!key_cols;0N!log_path];
+    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];
+    kc:`$key_cols;    
     k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];
     k2:?[tbl__;();0b;(kc)!(kc)];
     uk:k2 except k1;
     $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
-    upserttable[dbdir;tablename;to_upsert;log_path];
-};
+    upserttable[dbdir;tablename;to_upsert;log_path];}
+
 test_upserttable_no_duplicate:{[n]  // n:record number
     tbl_no:gen_tbl[100];
     key_cols:("dt";"ti");
@@ -96,6 +101,7 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]
     X::tablename;Y::tbl__;Z::key_cols;W::par_col;V::dbdir;U::log_path;
     pars:?[tbl__;();();`$par_col];
     pars:distinct asc pars;
+    pars:`date$pars;
     i:0;n:count pars;    
     while[i<n;    
         towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];
@@ -104,8 +110,24 @@ pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]
         sortandsetp[dbdir;par_tablename;key_cols;log_path]
         i+:1;
     ];
-    .Q.chk hsym `$dbdir     //填充空值
- }  
+    .Q.chk hsym `$dbdir
+}  
+
+pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]        
+    pars:?[tbl__;();();`$par_col];    
+    pars:distinct asc pars;    
+    i:0;n:count pars;
+    while[i<n;
+        towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        
+        par_tablename:raze string(pars[i]),"/",tablename;          
+        upserttable_no_duplicate[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;log_path];        
+        sortandsetp[dbdir;par_tablename;key_cols;log_path]        
+        i+:1;    
+    ];
+    .Q.chk hsym `$dbdir 
+};
+
+
 test_pupserttable_no_duplication:{
     tbl:gen_tbl[1000];
     pupserttable_no_duplication["d:/db";"trade";tbl;"dt";("sym";"ti");log_path]; 
@@ -203,6 +225,7 @@ updateentry[dbdir;"t";0 1;"p";7.0;log_path]                 //update two float
 updateentry[dbdir;"t";0 1;"p";1.0 2.0;log_path]             //update two float
 updateentry[dbdir;"t";0;"new_col";"tow";log_path]        //update one symbol
 updateentry[dbdir;"t";0 1;"new_col";"tow";log_path]        //update two symbol
+tables[]
 
 get `:d:/db/t/p
 get `:d:/db/t/new_col
@@ -283,7 +306,9 @@ c:count get `:d:/db/prod
 updateentry[dbdir;"prod";til c ;"change_limit";c#6.0;log_path]
 
 row:0;col:"new_col";val:"A"
+dbdir:X;tablename:Y;row:Z;col:W;val:V;log_path:O;
 updateentry:{[dbdir;tablename;row;col;val;log_path]
+    X::dbdir;Y::tablename;Z::row;W::col;V::val;O::log_path;
     db:hsym[`$dbdir,"/",tablename];
     db_col:hsym[`$dbdir,"/",tablename,"/",col];
     col_d:hsym[`$dbdir,"/",tablename,"/",".d"];    
@@ -297,7 +322,16 @@ updateentry:{[dbdir;tablename;row;col;val;log_path]
     system "l .";
     :0;
     };
-
+select from `:/home/quser/db_pa/2018.07.02/p
+test_updateentry_of_partition_table{
+    dbdir:"/home/quser/db_pa/2018.07.02"
+    log_path:"/home/quser/db.log"
+    tablename:"p"
+    row:0,1
+    val:1.0,1.0
+    col:"bonus_cash"    
+    updateentry[dbdir;tablename;row;col;val;log_path]   
+}
     value type exec first sym from t    
     select sym from t
     select 
@@ -374,6 +408,23 @@ sortdb:{[partition;sortcols;log_path]
 /         if[sorted;parted:setattribute[partition;first sortcols;`p#]]];     
 /     $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];    
 /  }
+sortcols:"sym"
+sortandsetp:{[dbdir;tablename;sortcols;log_path]        
+    partition:hsym[`$dbdir,"/",tablename];    
+    sortcols:`$sortcols;    
+    parted:setattribute[partition;first sortcols;`p#];     
+    if[not parted;            0N!sortcols;        0N!partition;        
+        sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];                
+        if[sorted;parted:setattribute[partition;first sortcols;`p#]]
+    ];         
+    $[parted; dblog[log_path;"`p# attribute set successfully"]; dblog[log_path;"ERROR - failed to set attribute"]];
+};  // 设置按date排序，所有select结果将保持排序
+    
+dblog[log_path;"sdf"]
+{[x;y]log_str:raze[[" "sv string`date`second$.z.P]," ",y];-1 log_str;hlog: hopen hsym `$x;(neg hlog) log_str;hclose hlog;}
+hopen hsym `$log_path
+hopen d:/db.log
+
 
  dbdir:X;tablename:Y;sortcols:Z;   
  sortcols:enlist "sym"
@@ -419,9 +470,71 @@ test_pupserttable_auto:{
     par_col:"dt.year";
     log_path:"d:/db.log";
 }
+tables[]
 test_delete_par_table:{
+    db_root:`:d:/db_fa_dev
+    par_table_name:`to_dfzq_sur_10_10
     list_dir:{reverse hsym[x],.Q.dd'[hsym x;key hsym x]};
-    file_list : raze list_dir each allpaths[`:/home/quser/db_csv;`factorneu20180629_mcy];
-    {if[not ()~key x;hdel x]} each file_list;
+    file_list : raze list_dir each allpaths[db_root;par_table_name];
+    {if[not ()~key x;hdel x]} each file_list;    
+    delete from `.
     system "l .";
 }
+
+list_dir:{reverse hsym[x],.Q.dd'[hsym x;key hsym x]};
+
+db_root_str:"d:/db_fa_dev"
+tbl_name_str:"qr_tianfeng_con_factor_neu_10"
+delete_par_table[db_root_str;tbl_name_str]
+delete_par_table:{[db_root_str;tbl_name_str]
+    db_root:hsym `$db_root_str;
+    tbl_name:`$tbl_name_str;    
+    file_list : raze list_dir each allpaths[db_root;tbl_name];
+    {if[not ()~key x;hdel x]} each file_list;        
+    value ("delete ",tbl_name_str," from `.");
+    system "l .";    
+}
+
+db_root_str:"d:/db_fa_dev"
+tbl_name_str:"cov_tianfeng_con_factor_neu"
+date_str:"2018.06.29"
+delete_par_table_by_date[db_root_str;tbl_name_str;date_str]
+delete_par_table_by_date:{[db_root_str;tbl_name_str;date_str]
+    db_root:hsym `$db_root_str;
+    tbl_name:`$tbl_name_str;  
+    date_sym:`$date_str;
+    dir_to_delete:` sv (db_root;date_sym;tbl_name);
+    file_list : raze list_dir each dir_to_delete;
+    {if[not ()~key x;hdel x]} each file_list;
+    .Q.chk db_root;
+    value ("delete ",tbl_name_str," from `.");
+    system "l .";    
+}
+count file_list
+select last date from ic_dfzq_sur
+tables[]@where tables[] like"*only*"
+
+select from qr_neu_test_only_change_winsorize_10 where factor = `YOY_Q_OPER_REV,date>2018.01.01,index=`000000.SH
+
+select from qr_neu_test_only_change_winsorize_10 where factor = `AMORT_INTANG_ASSETS,date>2018.01.01,index=`000000.SH
+
+select date,factor_cov from cov_daily where factor=`ADV_FROM_CUST,index=`000000.SH
+cols cov_daily
+
+a:1
+a
+value "delete a from `."
+parse "delete a from tbl"
+(!;enlist `.;();0b;enlist enlist `a)
+eval ![`.;();0b;enlist enlist `a]
+value "2+3"
+
+parse "select from ic_dfzq_sur"
+(?;`ic_dfzq_sur;();0b;())
+?[`ic_dfzq_sur;();0b;()]
+
+tables[]
+a:1
+.Q.qp a
+t:([]a:(0,0,0),b:(1,1,1))
+t

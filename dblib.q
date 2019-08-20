@@ -44,41 +44,23 @@ sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"
 //@[`:d:/db/product;`contract;`s#] //succeed
 
 upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];    system "l ."; };
-upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];`:];    kc:`$key_cols;    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];    uk:k2 except k1;    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];    upserttable[dbdir;tablename;to_upsert;log_path];};
+upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];    kc:`$key_cols;    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];    uk:k2 except k1;    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];    upserttable[dbdir;tablename;to_upsert;log_path];};
 pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;    while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];log_path];         i+:1;    ];    .Q.chk hsym `$dbdir };  
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;        while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable_no_duplicate[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;log_path];        sortandsetp[dbdir;par_tablename;key_cols;log_path]        i+:1;    ];    .Q.chk hsym `$dbdir };
 sortdb:{[partition;sortcols;log_path]    sorted:.[{x xasc y;1b};(sortcols;partition);{dblog[log_path;"ERROR - failed to sort table: ",string partition]; 0b}];            sorted    }
-// todo
-//修复wind发行日大于交割日的合约
-//to_update:select i,contract_issuedate:(lastdelivery_date.date-365)+lastdelivery_date.time from product where contract_issuedate>lastdelivery_date
-//updateentry[dbdir;"product";to_update`x;"contract_issuedate";to_update`contract_issuedate;log_path]
 
-//修复wind改名合约
-/ updateentry[dbdir;"product";exec i from product where code=`WS;"code";"WH";log_path]
-/ updateentry[dbdir;"product";exec i from product where code=`RO;"code";"OI";log_path];
-/ updateentry[dbdir;"product";exec i from product where code=`ER;"code";"RI";log_path]
-/ updateentry[dbdir;"product";exec i from product where code=`ME;"code";"MA";log_path]
-/ updateentry[dbdir;"product";exec i from product where code=`TC;"code";"ZC";log_path]
-/ updateentry[dbdir;"product";exec i from product where code=`WT;"code";"PM";log_path]
+list_dir:{reverse hsym[x],.Q.dd'[hsym x;key hsym x]};
 
-/ updateentry[dbdir;"quote";exec i from quote where code=`WS;"code";"WH";log_path]
-/ updateentry[dbdir;"quote";exec i from quote where code=`RO;"code";"OI";log_path];
-/ updateentry[dbdir;"quote";exec i from quote where code=`ER;"code";"RI";log_path]
-/ updateentry[dbdir;"quote";exec i from quote where code=`ME;"code";"MA";log_path]
-/ updateentry[dbdir;"quote";exec i from quote where code=`TC;"code";"ZC";log_path]
-/ updateentry[dbdir;"quote";exec i from quote where code=`WT;"code";"PM";log_path]
+//  db_root_str:"d:/db_fa_dev"
+//  tbl_name_str:"to_dfzq_sur_10"
+//  delete_par_table[db_root_str;tbl_name_str]
+delete_par_table:{[db_root_str;tbl_name_str]    db_root:hsym `$db_root_str;    tbl_name:`$tbl_name_str;        file_list : raze list_dir each allpaths[db_root;tbl_name];    {if[not ()~key x;hdel x]} each file_list;            value ("delete ",tbl_name_str," from `.");    system "l .";    }
 
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`WS;"code";"WH";log_path];
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`RO;"code";"OI";log_path];
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`ER;"code";"RI";log_path];
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`ME;"code";"MA";log_path];
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`TC;"code";"ZC";log_path];
-/ updateentry[dbdir;"warehouse_receipt";exec i from warehouse_receipt where code=`WT;"code";"PM";log_path];
+//  db_root_str:"d:/db_fa_dev"
+//  tbl_name_str:"to_dfzq_sur_10"
+//  date_str:"2018.06.29"
+//  delete_par_table_by_date[db_root_str;tbl_name_str;date_str]
+delete_par_table_by_date:{[db_root_str;tbl_name_str;date_str]    db_root:hsym `$db_root_str;    tbl_name:`$tbl_name_str;      date_sym:`$date_str;    dir_to_delete:` sv (db_root;date_sym;tbl_name);    file_list : raze list_dir each dir_to_delete;    {if[not ()~key x;hdel x]} each file_list;    .Q.chk db_root;    value ("delete ",tbl_name_str," from `.");    system "l .";    }
 
-// 行情表修复
-/ .quote.refine:{    //remove null settle, ffill close for quote
-/     :raze {t:select from quote where contract=x,not null settle;t[`close]:fills t[`close];:t }each distinct exec contract from quote;
-/ };
-/ q:.quote.refine[]
-/ upserttable["d:/db";"q";q]
-/ \l .
+
+
