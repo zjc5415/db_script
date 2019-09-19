@@ -1,0 +1,40 @@
+因子指标数据库
+q d:/db_fa -p 12344
+    \l d:/db_script/init.q
+
+q d:/db_fa_dev -p 11000
+    \l d:/db_script/init.q
+    
+因子库
+q d:/db_factor_zhangjc -p 11002
+    \l d:/db_script/init.q
+
+q d:/db_tmp -p 10002 -U d:/dbpasswd.txt
+临时内存数据库
+
+
+q d:/db_cache -p 16777
+    \l d:/db_script/init.q
+    
+q f:/db_cta -p 11534
+    \l d:/db_script/init.q    
+
+LINUX
+
+因子指标库
+/q/l32/daemonize -e /tmp/stderr.db_fa -o /tmp/stdout.db_fa -p /tmp/pidfile.db_fa /q/l32/q /home/quser/db_fa/ -p 11000
+朝阳永续因子数据库
+/q/l32/daemonize -e /tmp/stderr.db_gogoal_factor -o /tmp/stdout.db_gogoal_factor -p /tmp/pidfile.db_gogoal_factor /q/l32/q /home/quser/db_gogoal_factor -p 11001
+中性化因子库
+/q/l32/daemonize -e /tmp/stderr.db_factor_neutral -o /tmp/stdout.db_factor_neutral -p /tmp/pidfile.db_factor_neutral /q/l32/q /home/quser/db_factor_neutral -p 11002
+csv因子
+/q/l32/daemonize -e /tmp/stderr.db_csv -o /tmp/stdout.db_csv -p /tmp/pidfile.db_csv /q/l32/q /home/quser/db_csv -p 11003
+
+启动64位
+set QHOME=c:/q64
+set QLIC= "C:/q64" 
+cd c:/q64/w64
+q.exe
+
+
+    
