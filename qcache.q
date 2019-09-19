@@ -1,3 +1,60 @@
+
+select distinct fund_id from trade where datetime.date=2019.09.12
+select from trade where datetime.date=2019.09.16,fund_id=203
+select from trade where datetime.date=2019.09.16,fund_id=136
+select from trade where datetime.date=2019.09.16,fund_id=214
+
+select amt:sum(volume*price),vol:sum(volume),c:count(id) by datetime.minute from trade  where datetime.date=2019.09.12,fund_id=214
+
+
+`factor`date xdesc select date,factor,ic,rank_ic from fa_neu_m where factor=`BVOL20
+`ir xdesc select avg rank_ic,ir:sqrt(12)*(avg rank_ic)%(sdev rank_ic),avg q1,avg q10,avg long_short,avg rank_ac by factor from fa_neu_m
+-3exec max date except max date from .m.data
+(-3#(exec distinct date from .m.data))[0]
+first -3#.m.date
+first -2#.m.date
+select from factor_xroe where date=2019.09.10
+select max date from neu
+
+select distinct date from neu
+cols factor_ht_quanlity
+tables[]
+2!select date,wind_code,fwdret from .m.data where pool,date = exec max date except max date from .m.data
+
+`factor`date xasc select from fa_neu_w where date>2019.08.01
+
+select max date from eod
+select max date from .d.data
+
+select from .d.data where date=2019.09.09,w50>0
+
+select max date from iow where index=`000016.SH
+
+select from iow where date=2019.09.09,index=`000016.SH
+
+`:d:/cta/t.csv 0: csv 0: select from trade where datetime.date=2019.09.12
+select from trade
+
+(select qdate:date,wind_code,list_days from eod where date within 2019.09.01 2019.09.10)lj `qdate xkey select from tds
+
+`date xasc select date,ic,rank_ic,qrank_ic,rank_ac from fa_neu_w where factor=`EGP_TFW_fill
+
+`date xasc select  from fa_neu_w where factor=`NP_SQ
+
+select from tds
+meta tds
+tds
+
+
+
+
+
+
+tmp:`NP_SQ`date xasc (2!select date,wind_code,NP_SQ_neu:NP_SQ,gstd8_neu:NP_SQ_YMY_GSTD8 from neu)ij(2!select date,wind_code,NP_SQ,gstd8:NP_SQ_YMY_GSTD8 from factor_ht_quanlity)ij(2!select date,wind_code,citics1,logmv,fwdret,adjclose:adj*close from .m.data  where pool_300,date=2019.08.30)
+`NP_SQ xasc select from tmp where citics1=0x16
+
+tables[]
+cols factor_ht_quanlity
 select from a3_factor where date=`20190722
 tables[]
 select from ind where date=`20190722
@@ -9,6 +66,8 @@ select distinct gics from a4_factor
 
 select date,Size from a4_return where date>`20190601
 cols eod
+
+select from m
 
 
 tables[]
@@ -26,7 +85,7 @@ meta eod
 
 2!select from eod where date in `20190701,st=1b
 
-/去除停牌，st，180天新股
+
 select date,wind_code,close from eod where date>=`20190101, date<=`20190729,not  st,not suspend,list_days>180
 
 status
@@ -40,15 +99,15 @@ update pct:100*(deltas close)%close by wind_code from eod
 
 `wind_code xasc update pct: (deltas close) by wind_code from  select date,wind_code,close,adjfactor from eod where date in (`20190102,`20190103)
 
-/计算adjacent pct change
+
 `wind_code xasc update pct: {(0N,1_deltas x)%x} close*adjfactor by wind_code from  select date,wind_code,close,adjfactor from eod where date in (`20190102,`20190103,`20190104)
 
-/ 前向收益率
+
 `wind_code xasc update pct: {((1_deltas x),0N)%x} close*adj by wind_code from  select date,wind_code,close,adj from eod where date within 2019.01.02 2019.01.04
 count eod
 
 `wind_code xasc update pct: {((1_x,0N)%x)-1} close*adjfactor by wind_code from  select date,wind_code,close,adj from eod where date in (`20190102,`20190103,`20190104)
-/ n天连续收益率 
+
 `wind_code xasc update pct: {((2_x,2#0N)%x)-1} close*adjfactor by wind_code from  select date,wind_code,close,adj from eod where date in (`20190102,`20190103,`20190104)
 
 meta eod
@@ -69,7 +128,7 @@ select distinct date from eod fby date.month
 
 select max date by month from (select distinct date,month:date.month from eod) 
 
-/ 选择月底数据
+
 select date,wind_code, fwdret:{((1_deltas x),0N)%x} close*adj,citics1,log(fmv) from eod  where (date in exec max date by date.month from (select distinct date from eod where date within 2006.01.01 2007.01.01 )) ,not st,not suspend,list_days>180
 
 select date,wind_code,y:fwdret,size:fmv,`$"value":1%pettm from .m.train where date within 2006.02.28 2006.03.31
@@ -276,3 +335,149 @@ select from fa_m_pool_300
 
 tables[]
 select from factor_haitong_imom_cn3 where date.month = 2019.06m
+
+select from a3_return where date>=2019.08.01
+tables[]
+
+{eod:select from eod where date=x;.Q.dpft[`:f:/db_eod;x;`wind_code;`eod] } each (2019.08.13,2019.08.14)
+
+tables[]
+select distinct date from haitong_gp_trend
+
+tables[]
+
+select from factor_imom_cn3
+
+
+select from a3_return
+
+select date,Size, (nsize:(-20 xprev Size)%Size-1),ndate:-20 xprev date from a3_return
+
+update ndate:-20 xprev date,nclose:-20 xprev close, fwdret20d:{((-20 xprev x)%x)-1} close*adj  by wind_code from (select from eod where date>2019.01.01)    /所有日频数据，包括当前月
+
+(`date xkey select date:max(date),sumst:sum(st),sumsuspend:sum(suspend),sumup:sum(status=0),sumdown:sum(status=2),min(list_days) by date,wind_code from select date,wind_code,st,suspend,status,list_days from eod) lj select fmv30:{(asc x) floor .3*count x} fmv by date from eod
+
+
+(`date xkey select date:max(date),sumst:sum(st),sumsuspend:sum(suspend),sumup:sum(status=0),sumdown:sum(status=2),min(list_days) by date,wind_code from select date,wind_code,st,suspend,status,list_days from eod)
+
+
+select date,wind_code,sumst:20 msum st  from (select date,wind_code,st,suspend,status,list_days from .d.data) 
+
+select distinct date from factor_dongwu_m
+select distinct date from factor_dfzq_sue
+
+select max weight from iow where date=2019.08.15,index=`000905.SH
+
+select from .m.data where date>= exec max date except max date from .m.data 
+
+(2!select date,wind_code,fwdret from .m.data where pool,date >= exec max date except max date from .m.data)
+select from neu
+
+select from factor_sw_std_growth
+select from eod where date in (2019.07.31,2019.08.16) ,wind_code=`000001.SZ
+select from .m.data where date in (2019.07.31,2019.08.16) ,wind_code=`000001.SZ
+
+select from eod where date within 2015.05.12 2016.10.20, wind_code=`002423.SZ,st
+
+
+(cols a3_return)
+
+1_(cols a3_return)
+`:d:/cta/size.csv 0: csv 0:  sums(1!select from a3_return)
+parse "select date,sums(Size),sums(Growth) from a3_return"
+
+parse "select date,Size,Growth from a3_return"
+
+
+ sums(1!select from a3_return)
+
+?[`a3_return;();0b;(cols a3_return)!(`date;(+\;1_(cols a3_return)))]
+
+
+select min date from a4_factor
+
+select max date from a4_return
+
+tables[]
+
+count select distinct date from factor_tianfeng_con
+count select distinct date from factor_rcgo_500
+
+select min date from factor_xroe
+
+l1:exec distinct date from factor_xroe
+l2: exec distinct date from factor_haitong_gp_trend
+l1 except l2
+l
+l2
+count l1
+count l2
+count 
+count select distinct date from factor_dongwu_m
+
+tables[]
+
+select from iow where index=`000300.SH, date=2019.08.29
+
+select from .d.data where date=2009.06.29,wind_code=`000001.SZ
+
+
+select from iow where index=`000016.SH,wind_code=`600518.SH
+
+select max(date) from
+
+select from neu
+
+(2!select date,wind_code,fwdret from .m.data where pool,date >= exec max date except max date from .m.data) ij 2!select from neu
+
+tables[]
+select from fa_neu_w
+
+exec max date except max date from .w.data
+
+select date from .w.data
+.w.date
+.m.date
+
+-10#exec max date by date.week from (select distinct date from eod)
+select from tds
+select distinct qdate.week+1 from tds where qdate within 2019.08.01 2019.09.01
+
+select distinct date.week from (select distinct date from eod)
+
+`ic xasc select date,factor,ic,rank_ic,long_short,qrank_ic from fa_neu_m
+
+
+`:d:/cta/a3_return.csv 0: csv 0: select from a3_return where date within 2010.01.01 2019.08.26
+
+select date,sums Leverage from a3_return where date within 2010.01.01 2019.08.26
+tables[]
+
+(select from factor_dfzq_sue) ij 2!select date,wind_code,mv,citics1 from eod
+
+1#select from a3_factor
+
+select from a3_factor ij 2!select 
+select from iow where index=`000016.SH,wind_code=`000002.SZ
+
+select max(date) from eod
+
+select from cmp
+
+count select from cmp
+tables[]
+
+select from eod where 
+
+select sum v by date from cmp where date>2019.08.01,contract like "AU*"
+
+parse "select  from cmp where type=1"
+
+
+
+type
+
+select max(date) from neu
+10#select from neu
+
+select from fa_neu_w

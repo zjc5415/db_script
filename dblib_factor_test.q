@@ -62,6 +62,7 @@ t:.factor.wrap[xcode;start_date;end_date]
     key_tab^:.factor.vix[key_tab;86;0.94];
     
     nb:avg each {{1 _ x, y}\[x#0.0;y]}[20;exec volume from key_tab];    // volume的20日均值
+
     key_tab[`vol_avg]:nb;
     key_tab[`filter_reason]:0.0;
     key_tab:update filter_reason:filter_reason+1.0 from key_tab where i<180;
@@ -234,7 +235,7 @@ newd:2012.07.26
     //选择远月且oi最大的合约
     next_oi:raze {   tmp:select date,code,contract,oi,settle from quote where date=x[`date],code=x[`code];
         tmp:lj[tmp;1!select contract,lasttrade_date from product];
-        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>x[`lasttrade_date]
+        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>=x[`lasttrade_date]    /may be same with max_oi
     }each max_oi;
     next_oi:delete from next_oi where null date;
     to_upsert:select date,contract,oi,settle,lasttrade_date  from max_oi where not date in next_oi[`date];  // 只有一个合约,用max_oi替代
@@ -247,6 +248,21 @@ newd:2012.07.26
     
     :update roll_return_near_far:365*((log near_settle)-log far_settle)%((`date$far_lasttrade_date)-`date$near_lasttrade_date) from n^f;        
 }
+count max_oi
+count next_oi
+select from next_oi where not null date
+`:d:/cta/next_oi.csv 0: csv 0: next_oi
+tx:1#select from max_oi where date>2011.09.30
+x:tx[0]
+x
+
+
+ tmp:select date,code,contract,oi,settle from quote where date=2011.10.10,code=`B;
+        tmp:lj[tmp;1!select contract,lasttrade_date from product];
+        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>x[`lasttrade_date]
+
+
+select from quote where code=`B,date.month=2011.10m
 
 // 计算c列的动量，(close[0]-close[n])%close[n]
 // c为列名，symbol
@@ -464,3 +480,79 @@ c:0.94
     
     :select mom_warehouse_receipt:(warehouse_receipt-shift_warehouse_receipt)%shift_warehouse_receipt from wd;
 }
+
+select from factor where code=`AG
+l1:exec distinct code from product where exch<>`CFE
+-10#select from factor
+
+l2:exec distinct code from factor
+l:l1 except l2
+l
+
+-10 #select from factor
+select from factor where code=`AG
+
+ next1_oi:delete from next_oi where null date;
+select from next_oi where null date
+select from date 
+`:d:/cta/2.csv 0: csv 0:select from quote where code=`AG,date=2019.08.20
+
+select from warehouse_receipt
+
+select max date by code from quote where not code like "*-S"
+select min date by code from warehouse_receipt
+select count date by code from warehouse_receipt
+select max date by code from warehouse_receipt
+ssr[string 2019.08.20;".";""]
+
+
+.factor.roll_return:{[key_tab]
+    f:`lasttrade_date xasc (`contract xkey select date,contract,settle from key_tab) lj 1!select contract,lasttrade_date from product;
+    n:select from 
+    max_oi:select date,code,contract,oi,settle from key_tab;
+    max_oi:lj[max_oi;1!select contract,lasttrade_date from product];
+    //选择远月且oi最大的合约
+
+    next_oi:raze {   tmp:select date,code,contract,oi,settle from quote where date=x[`date],code=x[`code];
+        tmp:lj[tmp;1!select contract,lasttrade_date from product];
+        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>=x[`lasttrade_date]    /may be same as max_oi
+    }each max_oi;
+    next_oi:delete from next_oi where null date;
+    to_upsert:select date,contract,oi,settle,lasttrade_date  from max_oi where not date in next_oi[`date];  // 只有一个合约,用max_oi替代
+
+    next_oi:(1!next_oi) upsert 1!to_upsert;
+    next_oi:0!next_oi;
+    next_oi:`date xasc select from next_oi;     // delele,upsert之后，排序已经乱了
+    
+    n:select near_contract:contract,near_settle:settle,near_lasttrade_date:lasttrade_date from max_oi;    
+    f:select far_contract:contract,far_settle:settle,far_lasttrade_date:lasttrade_date from next_oi;
+    
+    :update roll_return_near_far:365*((log near_settle)-log far_settle)%((`date$far_lasttrade_date)-`date$near_lasttrade_date) from n^f;        
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

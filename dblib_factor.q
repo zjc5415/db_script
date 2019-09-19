@@ -16,8 +16,7 @@
     adj_dev:`float$();
     adj_var:`float$();
     adj_tr:`float$();
-    filter_reason:`float$()
-);
+    filter_reason:`float$());
 
 // 计算xcode在[start_date end_date]的主力合约，并与行情表左连接
 // 注意start_date之前的因子数据必须是全部计算好的，增量计算因子时都需要注意此条件。
@@ -54,7 +53,7 @@
 
 .factor.adjfactor:{[key_tab]          
     xcode:key_tab[`code][0];
-    ref: select [-1] date,contract,close, adjfactor from factor where date<min key_tab[`date],code=xcode;   //前值        
+    ref: select [-1] date,contract,close, adjfactor from factor where date<min key_tab[`date],code=xcode;
     if[0=count ref;ref:select [1] date,contract,close,adjfactor:1.0 from key_tab];
     tbl:ref,select date,contract,close,adjfactor:1.0 from key_tab;
     t:lj[fills update contract_shift:next contract from tbl;2!select date,contract_shift:contract,close_shift:close from quote where date>=min tbl[`date],date<=max tbl[`date],code=xcode];
@@ -67,6 +66,7 @@
 // 当前月还在交易则返回当前月，否则返回下月
 // 返回:最近月和结算价
 // 返回值类型：key_tab 为空，或者key不存在则返回空的list(0h)，否则返回table(98h)
+
 .factor.nearest_contract:{[key_tab]     
      nc:raze{
      k:`lasttrade_date xasc select contract,lasttrade_date from product where code=x[`code],(`month$lasttrade_date)>=`month$x[`date];
@@ -79,6 +79,7 @@
 // 持仓量第大的合约
 // 返回合约和结算价
 // 返回值类型：key_tab 为空，或者key不存在则返回空的list(0h)，否则返回table(98h)
+
 .factor.first_contract:{[key_tab]  
     sc:raze { (`oi xdesc select contract,oi from quote where date=x[`date],code=x[`code])[`contract][0] }each select date,code from key_tab;
     select first_contract:contract,first_settle:settle from lj[select date,contract:sc from key_tab;2!select date,contract,settle from quote where date>=min key_tab[`date],date<=max key_tab[`date],code=key_tab[`code][0]]
@@ -87,12 +88,14 @@
 // 持仓量第二大的合约
 // 返回合约和结算价
 // 返回值类型：key_tab 为空，或者key不存在则返回空的list(0h)，否则返回table(98h)
+
 .factor.secondary_contract:{[key_tab]  
     sc:raze { (`oi xdesc select contract,oi from quote where date=x[`date],code=x[`code])[`contract][1] }each select date,code from key_tab;
     select secondary_contract:contract,secondary_settle:settle from lj[select date,contract:sc from key_tab;2!select date,contract,settle from quote where date>=min key_tab[`date],date<=max key_tab[`date],code=key_tab[`code][0]]
 };
 
 // 计算最近且持仓量最大的两个合约,用于期限结构因子
+
 .factor.near_far:{[key_tab]
     nf:raze {2#`oi xdesc select date,contract,oi,settle from quote where date=x[`date],code=x[`code] }each select date,code from key_tab;
     nf:lj[nf;1!select contract,lasttrade_date from product];    
@@ -110,9 +113,12 @@
 
 .factor.mom_time:{[key_tab;t;c;n]
     listc:?[key_tab;();();c];      //从 key_tab中选择c列数据，
+
     conditions:((<;`date;min key_tab[`date]);(=;`code;key_tab[`code][0]));       
     ref:(neg n ) sublist ?[t;conditions;();c];                                  //从factor中选择c列的最后n个值，不足n个则保留有效值,ref 可能为空   
+
     ref,:listc;                                                                      //合并新旧数据
+
     ref:(count key_tab) sublist ((n+(count key_tab) -(count ref))#first ref),ref;
     :([]mom_time:(listc-ref)%ref);
 };
@@ -139,6 +145,7 @@
 
 .factor.roll_return1:{[key_tab]
     nf:raze {2#`oi xdesc select date,contract,oi,settle from quote where date=x[`date],code=x[`code] }each select date,code from key_tab;   //选择oi最大的两个合约, 可能只有一个合约，退市时，ER
+
     nf:lj[nf;1!select contract,lasttrade_date from product];    
     n:select date,near_contract:contract,near_settle:settle,near_lasttrade_date:lasttrade_date from nf where  lasttrade_date=(min;lasttrade_date) fby date;
     n:select near_contract,near_settle,near_lasttrade_date from n where differ n; // 只有一个合约时会出现重复的    如ER
@@ -175,15 +182,13 @@
 // key_tab主力合约，与远月且持仓量最大的合约
 
 .factor.roll_return3:{[key_tab]
-    //选择主力合约
-
     max_oi:select date,code,contract,oi,settle from key_tab;
     max_oi:lj[max_oi;1!select contract,lasttrade_date from product];
     //选择远月且oi最大的合约
 
     next_oi:raze {   tmp:select date,code,contract,oi,settle from quote where date=x[`date],code=x[`code];
         tmp:lj[tmp;1!select contract,lasttrade_date from product];
-        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>x[`lasttrade_date]
+        1#`oi xdesc select date,contract,oi,settle,lasttrade_date from tmp where lasttrade_date>=x[`lasttrade_date]    /may be same as max_oi
     }each max_oi;
     next_oi:delete from next_oi where null date;
     to_upsert:select date,contract,oi,settle,lasttrade_date  from max_oi where not date in next_oi[`date];  // 只有一个合约,用max_oi替代
@@ -191,7 +196,6 @@
     next_oi:(1!next_oi) upsert 1!to_upsert;
     next_oi:0!next_oi;
     next_oi:`date xasc select from next_oi;     // delele,upsert之后，排序已经乱了
-
     
     n:select near_contract:contract,near_settle:settle,near_lasttrade_date:lasttrade_date from max_oi;    
     f:select far_contract:contract,far_settle:settle,far_lasttrade_date:lasttrade_date from next_oi;
@@ -283,10 +287,10 @@
     t:update ref_contract:next nearest_contract from t;    
     t:lj[t;2!select date,ref_contract:contract,ref_settle:settle from quote where code=xcode,date>=min t[`date],date<=max t[`date]];    //合约切换时对齐到上一个合约
 
-    ny:exec 1.0^(nearest_settle%prev ref_settle) from t;    
+    ny:(neg count key_tab)#exec 1.0^(nearest_settle%prev ref_settle) from t;    
     // 近月的基差(前n个收益相乘), prd sliding window
-
-    nb:prd each {{1 _ x, y}\[x#1.0;y]}[n;ny];    
+    
+    nb:(neg count key_tab)#prd each {{1 _ x, y}\[x#1.0;y]}[n;ny];    
                 
     // 选择主力合约
     tf:select date,far_contract:contract,far_settle:settle from key_tab;
@@ -297,7 +301,7 @@
 
     fb:prd each {{1 _ x, y}\[x#1.0;y]}[n;fy];     
     
-    :(neg count key_tab)#([]daily_yield_near:ny;daily_yield_far:fy;mom_basis_near_far:nb-fb);    // 只去最后需要的数据
+    :([]daily_yield_near:ny;daily_yield_far:fy;mom_basis_near_far:nb-fb);    // 只去最后需要的数据
 };
 
 // 计算基差动量, 近月减远月, 近月远月的确认见near_far
@@ -307,19 +311,23 @@
 .factor.mom_basis_near_far:{[key_tab;n]
     xcode:key_tab[`code][0];
     // 计算近月的日收益
+
     t:(select [neg n+1] date,near_contract,near_settle from factor where code=xcode,date<min key_tab[`date]),select date,near_contract,near_settle from key_tab;    
     t:update ref_contract:next near_contract from t;    
     t:lj[t;2!select date,ref_contract:contract,ref_settle:settle from quote where code=xcode,date>=min t[`date],date<=max t[`date]];    //合约切换时对齐到上一个合约
     ny:exec 1.0^(near_settle%prev ref_settle) from t;    
     // 近月的基差(前n个收益相乘), prd sliding window
+
     nb:prd each {{1 _ x, y}\[x#1.0;y]}[n;ny];           
      
     // 计算远月的日收益
+
     t:(select [neg n+1] date,far_contract,far_settle from factor where code=xcode,date<min key_tab[`date]),select date,far_contract,far_settle from key_tab;    
     t:update ref_contract:next far_contract from t;    
     t:lj[t;2!select date,ref_contract:contract,ref_settle:settle from quote where code=xcode,date>=min t[`date],date<=max t[`date]];
     fy:exec 1.0^(far_settle%prev ref_settle) from t;
     // 远月的基差(前n个收益相乘), prd sliding window
+
     fb:prd each {{1 _ x, y}\[x#1.0;y]}[n;fy];     
     
     :(neg count key_tab)#([]daily_yield_near:ny;daily_yield_far:fy;mom_basis_near_far:nb-fb);    // 只去最后需要的数据
@@ -369,6 +377,7 @@
 
 
 // 计算[start_date end_date]闭区间的所有因子值,注意赋值顺序，
+
 .factor.wrap:{[xcode;start_date;end_date]
     key_tab:.factor.main[xcode;start_date;end_date];
     if[0=count key_tab;:key_tab];
@@ -411,13 +420,12 @@
         upserttable[dbdir;"factor";to_append;log_path]; 
         if[not .[{@[x;y;z];1b};(`:factor;`date;`s#);0b];.[{x xasc y;1b};(`date;`:factor);0b]];
         
-    }[start_date;end_date] each l; //distinct exec code from product where exch<>`CFE;   // CFE有两个仿真合约，AF1802-S/EF1802-S,
+    }[start_date;end_date] each distinct exec code from product where exch<>`CFE;   // CFE有两个仿真合约，AF1802-S/EF1802-S,
 };
 
 .quote.refine:{    //remove null settle, ffill close for quote
     :raze {t:select from quote where contract=x,not null settle;t[`close]:fills t[`close];:t }each distinct exec contract from quote;
 }
-
 
 / 第一次建立数据库时初始化
 
@@ -428,10 +436,12 @@ dbdir:"f:/db_cta";
 / \l .
 / start_date:2007.01.01
 / end_date: 2019.08.16
-/ xcode:`Y
+/ start_date:2019.08.12
+/ end_date: 2019.08.28
+/ xcode:`A
 / .factor.build[start_date;end_date]
 / .factor.wrap[xcode;start_date;end_date]
-
+/ l:`Y`ZN
 // todo
 //修复wind发行日大于交割日的合约
 //to_update:select i,contract_issuedate:(lastdelivery_date.date-365)+lastdelivery_date.time from product where contract_issuedate>lastdelivery_date

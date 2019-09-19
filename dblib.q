@@ -63,4 +63,6 @@ delete_par_table:{[db_root_str;tbl_name_str]    db_root:hsym `$db_root_str;    t
 delete_par_table_by_date:{[db_root_str;tbl_name_str;date_str]    db_root:hsym `$db_root_str;    tbl_name:`$tbl_name_str;      date_sym:`$date_str;    dir_to_delete:` sv (db_root;date_sym;tbl_name);    file_list : raze list_dir each dir_to_delete;    {if[not ()~key x;hdel x]} each file_list;    .Q.chk db_root;    value ("delete ",tbl_name_str," from `.");    system "l .";    }
 
 
+swin:{[f;w;s] f each { 1_x,y }\[w#0;s]}    / utils for sliding windows
+swin2:{x'/[0^(y-1)('[;]/[(flip;reverse;prev\)])'z]}        /swin2[cor;3;(29 10 54;1 3 9)]
 
