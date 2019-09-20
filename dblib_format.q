@@ -130,19 +130,23 @@ dbdir:X;table_path:Y;log_path:V;
 upserttable:{[dbdir;table_path;tbl__;log_path]
     //注意table_path包含partition的情况，如2016.01.10/ptable,
     //只支持splayed table/partitioned table,且后者tbl__不包含partition那一列
+
     if[is_debug_mode;
         X::dbdir;Y::table_path;V::log_path;
         0N!"***********upserttable***************";0N!dbdir;0N!table_path;0N!show 2#tbl__;0N!log_path
     ];
     system "l .";   /从磁盘加载数据，保证meta能成功
+
     table_sym:`$last "/" vs table_path;
     table_type:value ".Q.qp ",string table_sym;
     if[0~table_type;dblog[log_path;"failed to upsert to table_type 0",table_path]];
     if[table_sym in tables[];         //类型检查，注意列的顺序没有关系
+
         type_new:select c,t from (`c xasc meta tbl__);
         type_old:select c,t from (`c xasc meta table_sym);
         if[1b~table_type;
             type_old:delete from type_old where c=`date];  //partitioned table需要删除date列，todo:按其他字段分区是
+
         if[not type_new~type_old;
             dblog[log_path;"meta mismatch:",table_path];:`]];
     writepath:hsym `$dbdir,"/",table_path,"/";
@@ -172,8 +176,9 @@ pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]
     system "l ."}
 
 /
-dbdir:"d:/db_test_partition";
-tablename:"ptable";
+is_debug_mode:1b;
+dbdir:"f:/db_cache";
+tablename:"windi";
 tbl__:gen_tbl[10];
 key_cols:enlist("sym");
 log_path:"d:/tmp.log";
@@ -191,6 +196,16 @@ upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
     uk:k2 except k1;
     $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
     upserttable[dbdir;tablename;to_upsert;log_path];}
+
+upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    
+    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];    
+    kc:`$key_cols;    
+    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    
+    k2:?[tbl__;();0b;(kc)!(kc)];    
+    uk:k2 except k1;    
+    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];    
+    upserttable[dbdir;tablename;to_upsert;log_path];};
+
     
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]
     if[is_debug_mode;0N!"***********pupserttable_no_duplication***************";0N!dbdir;0N!tablename;0N!show 2#tbl__;0N!par_col;0N!key_cols;0N!log_path];
