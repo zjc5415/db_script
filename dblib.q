@@ -43,7 +43,7 @@ sortandsetp:{[dbdir;tablename;sortcols;log_path]        partition:hsym[`$dbdir,"
 //@[`:d:/db/quote;`date;`s#] //succeed
 //@[`:d:/db/product;`contract;`s#] //succeed
 
-upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;    .[upsert;(writepath;(0#select from writepath) upsert .Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];    system "l ."; };
+upserttable:{[dbdir;tablename;tbl__;log_path]        writepath:hsym[`$dbdir,"/",tablename,"/"];    0N!writepath;       to_upsert:$[0<count key writepath;((0#select from writepath) upsert .Q.en[hsym `$dbdir;] tbl__);.Q.en[hsym `$dbdir;] tbl__]; .[upsert;(writepath;to_upsert);{dblog[log_path;"failed to upsert table: ",x]}];    system "l ."; };
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];    kc:`$key_cols;    k1:?[hsym `$dbdir,"/",tablename;();0b;(kc)!(kc)];    k2:?[tbl__;();0b;(kc)!(kc)];    uk:k2 except k1;    $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];    upserttable[dbdir;tablename;to_upsert;log_path];};
 pupserttable:{[dbdir;tablename;tbl__;par_col;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;    while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];log_path];         i+:1;    ];    .Q.chk hsym `$dbdir };  
 pupserttable_no_duplication:{[dbdir;tablename;tbl__;par_col;key_cols;log_path]        pars:?[tbl__;();();`$par_col];    pars:distinct asc pars;    i:0;n:count pars;        while[i<n;            towrite:?[tbl__;enlist(=;`$par_col;pars[i]);0b;()];        par_tablename:raze string(pars[i]),"/",tablename;          upserttable_no_duplicate[dbdir;par_tablename;![towrite;();0b;enlist`$par_col];key_cols;log_path];        sortandsetp[dbdir;par_tablename;key_cols;log_path]        i+:1;    ];    .Q.chk hsym `$dbdir };
@@ -63,6 +63,6 @@ delete_par_table:{[db_root_str;tbl_name_str]    db_root:hsym `$db_root_str;    t
 delete_par_table_by_date:{[db_root_str;tbl_name_str;date_str]    db_root:hsym `$db_root_str;    tbl_name:`$tbl_name_str;      date_sym:`$date_str;    dir_to_delete:` sv (db_root;date_sym;tbl_name);    file_list : raze list_dir each dir_to_delete;    {if[not ()~key x;hdel x]} each file_list;    .Q.chk db_root;    value ("delete ",tbl_name_str," from `.");    system "l .";    }
 
 
-swin:{[f;w;s] f each { 1_x,y }\[w#0;s]}    / utils for sliding windows
+swin:{[f;w;s] f each { 1_x,y }\[w#s[0];s]}    / utils for sliding windows, fill with s[0]
 swin2:{x'/[0^(y-1)('[;]/[(flip;reverse;prev\)])'z]}        /swin2[cor;3;(29 10 54;1 3 9)]
 
