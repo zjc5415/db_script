@@ -1,6 +1,7 @@
 //schema
 .schema.factor:(
     []date:`timestamp$();code:`symbol$();contract:`symbol$();open:`float$();high:`float$();low:`float$();close:`float$();oi:`float$();settle:`float$();volume:`float$();amt:`float$();
+    r:`float$();
     adjfactor:`float$();adjclose:`float$();
     first_contract:`symbol$();first_settle:`float$();
     secondary_contract:`symbol$();secondary_settle:`float$();
@@ -48,6 +49,13 @@
     key_tab: update contract:r from key_tab;    
     :key_tab lj 3!select from quote where date>=start_date,date<=end_date,code=xcode;    
 };
+
+.factor.r:{[xcode;start_date;end_date]
+    start_date_:last exec qdate from tds where qdate<start_date;
+    tmp:update  r:{(x%(1 xprev x))-1} settle  by contract from (select date,contract,settle from quote where code=xcode,date>=start_date_,date<=end_date); 
+    :select date,contract,r from tmp where date>=start_date;
+};
+
 
 // 计算主力合约复权因子和复权价格, 复权因子(T)=复权因子(T-1)*旧主力合约前收盘价/新主力合约前收盘价,主力合约复权收盘价(T)=主力合约收盘价*复权因子(T), 返回主力合约复权因子和复权收盘价,返回类型：table(98h),可能为空表
 
@@ -381,6 +389,7 @@
 .factor.wrap:{[xcode;start_date;end_date]
     key_tab:.factor.main[xcode;start_date;end_date];
     if[0=count key_tab;:key_tab];
+    key_tab:key_tab lj 2!.factor.r[xcode;start_date;end_date];
     key_tab^:.factor.adjfactor[key_tab];        // 注意使用^合并是，不能有相同的列，否则应该用lj
 
     key_tab^:.factor.first_contract[key_tab];
@@ -402,7 +411,7 @@
     key_tab:update filter_reason:filter_reason+2.0 from key_tab where vol_avg<10000;
     key_tab:delete vol_avg from key_tab;
     
-    key_tab:update mom_time:0n,roll_return_near_far:0n,mom_basis_near_far:0n,mom_warehouse_receipt:0n from key_tab where filter_reason>0;   
+/    key_tab:update mom_time:0n,roll_return_near_far:0n,mom_basis_near_far:0n,mom_warehouse_receipt:0n from key_tab where filter_reason>0;   
     :key_tab;
 };
 
@@ -413,9 +422,8 @@
         to_append:.factor.wrap[xcode;start_date;end_date];
         if[0=count to_append;:`];
         // 按date,code去重
-
-        old:select date,code from factor where code=xcode,date>=start_date,date<=end_date;
-        dups:exec i from to_append where ([]date;code) in old;
+        
+         dups:exec i from to_append where ([]date;code) in select date,code from factor where code=xcode,date>=start_date,date<=end_date;
         if[0<count dups;to_append:select from to_append where not i in dups];     
         upserttable[dbdir;"factor";to_append;log_path]; 
         if[not .[{@[x;y;z];1b};(`:factor;`date;`s#);0b];.[{x xasc y;1b};(`date;`:factor);0b]];
@@ -425,17 +433,17 @@
 
 .quote.refine:{    //remove null settle, ffill close for quote
     :raze {t:select from quote where contract=x,not null settle;t[`close]:fills t[`close];:t }each distinct exec contract from quote;
-}
+};
 
 / 第一次建立数据库时初始化
 
-log_path: "f:/db_cta.log";
-dbdir:"f:/db_cta";
-
-/ upserttable[dbdir;"factor";.schema.factor;log_path]
+/log_path: "f:/db_cta.log";
+/dbdir:"f:/db_cta";
+/ dbdir:"f:/db_cache";
+/ upserttable[dbdir;"factor";.schema.factor;log_path]    `:factor/ set .Q.en[`:.].schema.factor
 / \l .
 / start_date:2007.01.01
-/ end_date: 2019.08.16
+/ end_date: 2019.10.08
 / start_date:2019.08.12
 / end_date: 2019.08.28
 / xcode:`A

@@ -125,14 +125,15 @@ tbl__:select sym,ti,qty from gen_tbl[1];
 log_path:"d:/tmp.log";
 upserttable[dbdir;table_path;tbl__;log_path]
 
-dbdir:X;table_path:Y;log_path:V;
+dbdir:X;table_path:Y;tbl__:Z;log_path:V;
+upserttable[dbdir;tablename;to_upsert;log_path]
 \
 upserttable:{[dbdir;table_path;tbl__;log_path]
     //注意table_path包含partition的情况，如2016.01.10/ptable,
     //只支持splayed table/partitioned table,且后者tbl__不包含partition那一列
 
     if[is_debug_mode;
-        X::dbdir;Y::table_path;V::log_path;
+        X::dbdir;Y::table_path;Z::tbl__;V::log_path;
         0N!"***********upserttable***************";0N!dbdir;0N!table_path;0N!show 2#tbl__;0N!log_path
     ];
     system "l .";   /从磁盘加载数据，保证meta能成功
@@ -150,10 +151,34 @@ upserttable:{[dbdir;table_path;tbl__;log_path]
         if[not type_new~type_old;
             dblog[log_path;"meta mismatch:",table_path];:`]];
     writepath:hsym `$dbdir,"/",table_path,"/";
-    .[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert ",table_path,":",x];:`}];
+    to_upsert:$[0<count key writepath;((0#select from writepath) upsert .Q.en[hsym `$dbdir;] tbl__);.Q.en[hsym `$dbdir;] tbl__];
+    .[upsert;( writepath;to_upsert);{dblog[log_path;"failed to upsert ",table_path,":",x];:`}];
     dblog[log_path;"upsert to ",table_path," done"];
     system "l ."}
 
+tmp:tbl__
+t:tmp upsert tmp
+t
+(0#select from writepath) upsert .Q.en[hsym `$dbdir;] tbl__
+
+(0#select from writepath) upsert tbl__
+meta (0#select from writepath)
+meta tbl__
+
+m1:meta (0#select from writepath) 
+m1=meta writepath
+m2:meta .Q.en[hsym `$dbdir;] tbl__
+m1=m2
+m1[`ACCT_RCV]
+m2[`ACCT_RCV]
+m2
+count m2
+count m1
+
+upserttable:{[dbdir;tablename;tbl__;log_path]        
+writepath:hsym[`$dbdir,"/",tablename,"/"];    
+0N!writepath;    
+.[upsert;(writepath;.Q.en[hsym `$dbdir;] tbl__);{dblog[log_path;"failed to upsert table: ",x]}];    system "l ."; };
 /
 dbdir:"d:/db_test_partition";
 tablename:"ptable";
@@ -195,7 +220,7 @@ upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]
     k2:?[tbl__;();0b;(kc)!(kc)];
     uk:k2 except k1;
     $[(asc cols uk)~(asc cols tbl__);to_upsert:uk;to_upsert:lj[uk;kc xkey tbl__]];
-    upserttable[dbdir;tablename;to_upsert;log_path];}
+    $[0<count to_upsert;upserttable[dbdir;tablename;to_upsert;log_path]];}
 
 upserttable_no_duplicate:{[dbdir;tablename;tbl__;key_cols;log_path]    
     if[0=havetable[dbdir;tablename];upserttable[dbdir;tablename;tbl__;log_path];:`];    

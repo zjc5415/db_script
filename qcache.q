@@ -1,13 +1,419 @@
-
-select distinct fund_id from trade where datetime.date=2019.09.12
-select from trade where datetime.date=2019.09.16,fund_id=203
-select from trade where datetime.date=2019.09.16,fund_id=136
-select from trade where datetime.date=2019.09.16,fund_id=214
-
-select amt:sum(volume*price),vol:sum(volume),c:count(id) by datetime.minute from trade  where datetime.date=2019.09.12,fund_id=214
+select from .d.data where date=2019.09.27,wind_code=`002938.SZ
+select from factor_
+select from cfactor_main
+`:b5_r.csv 0: csv 0: select from b5_r
+select from iow where index=`000852.SH
 
 
-`factor`date xdesc select date,factor,ic,rank_ic from fa_neu_m where factor=`BVOL20
+select from ft where id=235,datetime.date within 2019.09.10 2019.10.15, wind_code like "688*"
+
+exec date from select  `$string max date by date.month from b5s_gama
+
+select distinct date from b5s_gama
+
+select from po300 where alpha=`GMV
+meta b5_r
+tables[]
+select from b5_r where date>2019.10.01
+select from b5_sr where date>2019.01.01
+select from b5_p where date>2010.01.01
+select from b5f_cov where date=2019.10.15
+select from b5f_gama where date>2019.10.01
+select from b5s_sigma where date>2019.01.01
+select from b5s_gama where date>2010.01.01
+select from b5s_gama_sm where date>2010.01.01
+
+exec `$string max qdate by qdate.month from tds where qdate within 2019.01.01 2019.10.01
+
+(select from b5s_gama) lj (1!select from b5s_gama_sm)lj(select from b5f_gama)
+
+select date,adjusted_rsquare,r2:252 mavg adjusted_rsquare from b5_p where date>2010.01.01
+
+
+(exec distinct date.date from quote) except (exec distinct date from cfactor_main)
+
+
+2!`date xasc select from b5_sr where date within 2014.08.11 2015.08.19
+
+exec distinct date from cfactor_main
+select from cfactor_main where date=2007.01.05
+
+ cfactor_main from `.
+
+select from cfactor_main
+select from cfactor_main where code=`B,date>2009.11.01
+select from quote where code=`B,date>=2009.11.13
+select from product where code=`B
+select from cfactor_main where date<2008.01.01,code=`A
+
+(select from cfactor_mom_basis)ij(2!select date,code,settle:settle*adj from cfactor_main)ij(2!select date,code,pool from cfactor_pool where pool)
+
+select from product where code=`TA
+select .z.D-min contract_issuedate.date by code from product
+
+select days:2007.01.04-min contract_issuedate.date by code from product
+
+select min contract_issuedate.date by code from product
+
+
+tables[]
+delete 
+select sdev sigma_sh,max sigma_sh by date from b5s_sigma
+delete b5s_sigma,b5s_gama,b5s_gama_sm from `.
+
+select from b5f_cov
+select from b5_r
+tables[]
+select from b5s_sigma where date=2019.09.11
+select from b5s_gama where date=2019.09.11
+d
+select from quote where code=`IF
+`:d:/cta/tmp.csv 0: csv 0: select from cfactor_cash_flow where code=`AU,date>2018.12.31
+select from cfactor_oiavg
+delete cfactor_oiavg from `.
+select oi wavg open, oi wavg high,oi wavg low,oi wavg close,sum(oi),oi wavg settle,sum(volume),sum(amt)  by date,code from quote 
+select from quote where code=`AL
+cols quote
+`date xasc 
+(select size:sum(oi*close) by `date`code from quote where date>=2014.06.13,date<=2014.09.10)
+
+select max oi*close by `date`code from quote
+select max oi*close by date,code from quote
+
+lj(1!select contract,multiplier from product)
+
+select from cfactor_cash_flow
+
+`date xdesc select from cfactor_tec where code=`AU
+delete cfactor_main from `.
+select from quote where code=`IF,date within 2019.09.18 2019.09.23
+select from cfactor_main where code=`IF
+first exec contract  from quote where date=2011.12.01,code=`FU,(oi+volume)>=max(oi+volume)
+select from product
+tables[]
+select from cfactor_roll_return_reg
+select max date from quote
+first exec contract from quote where date=2018.06.27,code=`FU,(0^oi+0^volume)>=max(0^oi+0^volume)
+select from quote where date=2018.06.27,code=`FU
+`date xdesc select from cfactor_main where code=`IM
+select from quote where code=`FU
+se
+select from quote where date=2014.09.08
+count select distinct code  from quote where date=2014.09.05
+count select distinct code  from quote where date=2014.09.11
+select from tds where qdate within 2014.09.05 2014.09.09
+select from quote where code=`FU,date=2011.12.01
+select from product where code=`RI
+select from quote where date=2019.10.09
+/delete date from splayed table
+{0N!x;`:neu2/ upsert select from neu where date.year=x,date<2019.09.24} each exec distinct date.year from neu where date<2019.09.24
+
+select distinct date from quote
+select from cfactor_main where code=`AG
+select distinct date from quote where code=`A
+select from cfactor_main where date=2007.01.23
+
+select from factor_cne5 where date=2019.09.27
+select from factor_cne5_desc where date=2019.09.27
+delete cfactor_main from `.
+
+
+tables[]
+select max date from b5_r
+select from b5_sr where null sr
+b5_sr:`date xasc b5_sr
+
+select from factor_cne5 where date=2018.08.23,wind_code=`000629.SZ
+b5_sr:delete from b5_sr where null sr
+select from b5_sr where wind_code=`000629.SZ
+$[not `b5_sr in tables[];0b;(exec asc distinct qdate from tds where qdate within 2017.01.13 20180123)~(exec asc distinct date from b5_sr where date within 2017.01.13 20180123)]
+select from b5s_gama_sm
+select from b5f_gama
+select max date from factor_cne5 
+select min date from b5_sr 
+delete b5s_sigma from `.
+select from b5f_cov
+select from b5f_gama
+select from b5s_sigma
+select from factor_cne5 where wind_code=`002450.SZ
+
+tables[]@where tables[] like "b5*"
+parse  "`:b5_r/ set b5_r"
+b5_r:`date xasc b5_r
+
+select date,sums(COUNTRY) from b5_r
+tables[]
+delete from `b5s_sigma
+delete b5f_cov,b5f_sigma from `.
+delete b5_cov_nw_eigen from `.
+delete b5s_h,b5s_p,b5s_r,b5s_sr,b5s_risk,b5s_sigma from `.
+select from b5_p
+select date,wind_code,r,fmv,citics1 from .d.data where date>2019.01.01
+delete b5_r from `.
+delete from `b5_r where date=2019.09.27
+select from  b5_r 
+$[not `factor_cne5 in tables[];0b;2018.01.02 in exec distinct date from factor_cne5]
+select wind_code,SIZE,NLSIZE,VOL,LIQUIDITY,RSTR,EY,GROWTH,LEVERAGE,BP from factor_cne5 where date=2019.09.26
+select max date from factor_cne5
+select from b5_r
+tables[]
+`$string 2019.01.01
+$[not `b5s_risk in tables[];0b;(exec asc distinct qdate from tds where qdate within 2019.09.27 2019.09.27)~(exec asc distinct date from b5s_risk where date within 2019.09.27 2019.09.27)]
+select from b5s_sigma
+(exec distinct qdate from tds where qdate within 2019.09.01 2019.09.12)~(exec distinct date from b5s_risk)
+$[not `b5s_risk in tables[];enlist();`()$exec distinct date from b5s_risk]
+tables[]
+select from b5_sr where wind_code=`000418.SZ
+select max date from factor_cne5
+select from b5_r
+tables[]
+select from a3_return where date.month=2019.09m
+select min date from b5_cov
+select from b5_h where date=2019.03.25
+select from b5_cov where date=2019.03.27
+select from b5_gama where date=2019.03.25
+
+any not `b5_gama`b5_cov in tables[]
+
+(b5_cov_nw_eigen in talbes) | not 2019.09.27 in exec distinct date from b5_cov_nw_eigen
+not b5_cov_nw_eigen in tables[]
+tables[]
+b5_cov:select from b5_cov_nw_eigen
+cols b5_cov_nw_eigen
+{[x;y]([]rsquare:enlist x;adjusted_rsquare:enlist y)}[1;2]
+select date,sums MKT from b5_r
+
+select date,adjusted_rsquare, mr2:60 mavg adjusted_rsquare from b5_p
+tables[]
+
+select from factor_cne5_desc
+
+parse "delete b5_r,b5_sr from `."
+
+delete b5_r,b5_sr,b5_p,b5_h from `.
+
+b5_h
+`d$enlist .z.P
+select max date from eod
+2!select date,wind_code,citics1,fmv,r1 from .d.data where date=2019.09.26,pool1
+cols .d.data
+
+select from tds
+
+til (1990.12.03+100)
+nature_daty:(exec first qdate from tds) +/: til (exec (max qdate)-min qdate from tds)
+
+([]qdate:nature_daty)lj `qdate xkey select from tds
+
+
+(2!select from factor_cne5_desc where date=2019.09.26)ij(2!select date,wind_code,pool1 from .d.data where date=2019.09.26,pool1)
+
+select from a3_return where date=2019.09.26
+select from factor_cne5 where date=2019.09.26
+
+select max Growth ,min Growth ,avg Growth by date  from a3_factor where date>2019.01.01
+
+t:((select cn:count wind_code by date from .d.data)lj(select cn1:count wind_code by date from .d.data where pool1))
+select date, cn,cn1,cn1%cn from t
+update pool1:(not suspend)&(not sta)&(list_days>252)&(not wind_code like "688*")&(citics1<>29)&(fmv252_30)&(amount252_30) from `.d.data 
+d
+tables[]
+cols factor_cne5_desc
+select from factor_cne5
+select from factor_cne5_desc where date=2019.01.02,wind_code=`000018.SZ
+\l
+(select from factor_cne5_desc where date=2019.09.26)ij(2!select date,wind_code,pool1 from .d.data where date=2019.09.26,pool1)
+
+select date,wind_code,fmv,fmv252 from .d.data where date=2019.09.26
+update pool:(not suspend)&(not st)&(list_days>120)&(not wind_code like "688*")&(citics1<>29) from `.d.data  /当天非st，上市大于252天，非停牌，非科创板,中信行业已分类, 过去252天停牌少于174，停牌少于174，退市
+
+select from windst
+
+update fmv252_30:fmv252>{(asc x) floor .3*count x} fmv by date from `.d.data
+
+{(asc x) floor .3*count x}   100?100
+
+select S_INFO_WINDCODE,REPORT_PERIOD,ACTUAL_ANN_DT,STATEMENT_TYPE,NET_PROFIT_EXCL_MIN_INT_INC from windi where STATEMENT_TYPE in (`408001000`408004000`408005000),ACTUAL_ANN_DT within 2019.01.01 2019.09.24
+
+select from windc where S_INFO_WINDCODE=`000333.SZ
+count windc
+cols windb
+select from a3_return where date>2019.09.19
+select from fa_neu_w where date>2019.09.2
+
+`:d:/cta/tmp.csv 0: csv 0: select from a3_return where date>2019.01.01
+
+select from factor_xroe where date=2019.09.24
+select date,q1,q10 from fa_neu_w where factor=`fwdret
+cols fa_ne
+{0N!x;`:neu2/ upsert select from neu where date.year=x,date<2019.09.24} each exec distinct date.year from neu where date<2019.09.24
+select from neu where date=2019.09.24
+select max date from neu2
+select from n
+count neu2
+count neu
+delete neu from `.
+neu: select from neu where date<2019.09.20
+
+`:neu2/ set neu
+
+select from factor_xroe where date=2019.09.20
+
+select from windst where ENTRY_DT>=2018.09.06,S_TYPE_ST<>`S
+
+select date,wind_code,adjclose:close*adj%100,st,suspend from eod where date within 2018.09.06 2019.09.20, list_days>180,not wind_code in (exec S_INFO_WINDCODE from windst where ENTRY_DT within 2018.09.06 2019.09.20,S_TYPE_ST<>`S)
+cols eod
+
+select distinct S_TYPE_ST from windst
+delete windst from `.
+meta windst
+
+select date,wind_code,close,adj,mv,st,suspend from eod where date within 2019.09.20- 2019.09.20, list_days>180
+
+
+
+delete windb from `.
+
+{[xdate;yn;zn]start_date:first -yn#exec qdate from tds where qdate<xdate;tmp:select date,wind_code,adjclose:close*adj%100,mv,st,suspend from eod where date within start_date,xdate, list_days>zn;
+select update r:{(( xprev x)%x)-1} close*adj  by wind_code from tmp;}
+
+count windb
+select from windi where OPDATE>2019.09.01
+
+2019.09.20-247
+-101#select from .d.data
+
+select from tds where qdate
+first -247#exec qdate from tds where qdate<2019.09.20
+l:1,2,3,4
+
+
+flip (`id`uid`date`start_time`end_time`amt`twap_cost`vwap_cost)!("IIIVVFFF";enlist",") 0: `:W:/zhangjc/cost.csv
+
+.Q.fs[{0N!("IIIVVFFFF";enlist",") 0:x}] `:W:/zhangjc/cost.csv
+
+slip:("IIIVVFFF";enlist",") 0:`:d:/cta/cost1.csv
+
+`:slip set slip
+
+(2!select from fjh_neu1)ij(2!select date,wind_code,fwdret from .m.data where pool,date < (exec max date from .m.data))
+get slip
+2#select date,wind_code,fwdret from .m.data 
+
+select from fa_neu_m_300 where factor=`Sent,date>2018.01.01
+
+select max q10 by date from fa_neu_m_300 
+`:d:/cta/a3.csv 0: csv 0: select from a3_return where date>2019.08.31
+
+
+`citics1 xdesc (2!select date,wind_code,IMOM1_11M from neu where date=2019.08.30)ij(2!select date,wind_code, fwdret, citics1,mv,w300 from .m.data where date=2019.08.30,citics1=4,w300>0)
+cols neu
+select distinct date from neu
+tables[]
+select from factor_ht_ns where NS=0w
+
+select from .m.data where pool, date=2019.09.18
+2!select date,wind_code,fwdret from .m.data where pool,w300>0,date < exec max date
+
+select date,wind_code,fwdret from  .m.data where pool,w300>0,date < exec max date
+
+(2!select from neu) ij (2!select date,wind_code,fwdret from  .m.data where pool,w300>0,date < exec max date)
+
+select date,wind_code,fwdret from  (.m.data) where w300>0,date < exec max date
+1#select  date,wind_code,fwdret from .m.data where w300>0,pool,(date<exec max date)
+select from .m.data where date< max date
+
+select distinct date from neu where date within 2018.03.22 2018.08.15
+
+upserttable_no_duplicate
+
+select from po300
+
+select max date from neu
+
+select avg rank_ic ,sdev rank_ic by factor from fa_neu_m_300 where date>2019.01.01
+
+(select sdev VOL20 by date from neu) ij(1!select date,factor,ic,rank_ic,long_short,q1,q10 from fa_neu_m_300 where date>2019.01.01,factor=`NP_SQ_YMY_GSTD8)
+
+select date,factor,ic,rank_ic,long_short,q1,q10 from fa_neu_m_300 where date>2018.01.01,factor=`EP_ROLL_TFW_fill
+
+se
+
+d:(select date,wind_code,NP_SQ_YMY_GSTD8 from neu where date=2019.05.31)ij(2!select date,wind_code,fwdret from  .m.data where pool,w300>0,date=2019.05.31)
+`:d:/cta/d.csv 0: csv 0: d
+
+`d/
+
+d
+e:select date,wind_code,weight from po300 where alpha=`NP_SQ_YMY_GSTD8,date=2019.05.31
+d:d lj 2!e
+(cols neu)@where (cols neu) like "*EP*"
+
+`:d:/cta/1.csv 0: csv 0: select date,NP_SQ_YMY_GSTD8,XROE,ROE_SQ from neu where wind_code=`002311.SZ
+select from po300 where alpha=`NP_SQ_YMY_GSTD8
+select from mf where date=2019.05.31
+po300:delete  from po300
+po300
+select from cmp
+
+(`date`wind_code xkey select from po300 where alpha=`IMOM1_11M,date=2019.08.30) ij 2!select date,wind_code,citics1 from eod where date=2019.08.30,citics1=0
+(`date`wind_code xkey select date,wind_code,IMOM1_11M from neu where date=2019.08.30) ij 2!select date,wind_code,citics1 from eod where date=2019.08.30,citics1=0
+(`date`wind_code xkey select  from neu where date=2019.08.30) ij 2!select date,wind_code,citics1 from eod where date=2019.08.30,citics1=0
+
+select from neu where wind_code=`002142.SZ
+
+select from po300
+delete po500 from `.
+select from po300 where alpha=`DEP
+
+.m.date@where .m.date within 2019.01.01 2019.10.01
+
+(value .m.date)@where .m.date within 2019.01.01 2019.10.01
+
+2!(select date,wind_code,share from fp where date in (2019.08.30), id=136)lj(2!select date,wind_code,close from eod where date in (2019.08.30))
+
+(2!select date,wind_code, fwdret, citics1,mv,w300 from .m.data where date=2019.08.30,w300>0)lj(2!select date,wind_code,weight from po300 where date=2019.08.30,alpha=`IMOM1_11M)
+select from fp where wind_code=`002961.SZ
+select from po300
+meta fp
+po300:select from po300
+delete from `po300 where alpha=`IMOM1_11M
+
+1#select from .m.data
+
+delete po300 from `.
+
+`:po300/ set  po300
+select from fp where date>2019.09.24,id=182
+select from po300
+
+select max date from .m.data
+select from fp where date=2019.09.17,id=235,wind_code=`002962.SZ
+`date xdesc select sum(price*volume) by id,datetime.date,direction from ft where datetime.date>=2019.09.01,id=136
+
+alpha
+select from .m.data where date=2019.08.30,wind_code=`603486.SH
+select sum(weight) from po500
+select from po500
+meta po300
+select from po300
+
+delete po500 from `.
+select from po500
+(select from a3_factor where date=(2019.08.30))lj        (2!select date,wind_code,wb:weight from iow where date in (2019.08.30),index=`000905.SH)
+
+(select from a3_factor where date=2019.05.31) lj  2!select date,wind_code,weight from iow where  date=2019.05.31,index=`000905.SH
+select from iow where i=max(i)
+cols .m.data
+select max date from neu
+
+
+
+
+select min date from factor_xroe
+cols neu
+`long_short xdesc select date,factor,ic,rank_ic,long_short,rank_ac from fa_neu_m where date.month=2019.07m
+`date`factor`long_short xdesc select date,factor,ic,rank_ic,long_short,rank_ac from fa_neu_m where factor=`IMOM1_11M
 `ir xdesc select avg rank_ic,ir:sqrt(12)*(avg rank_ic)%(sdev rank_ic),avg q1,avg q10,avg long_short,avg rank_ac by factor from fa_neu_m
 -3exec max date except max date from .m.data
 (-3#(exec distinct date from .m.data))[0]
@@ -15,6 +421,11 @@ first -3#.m.date
 first -2#.m.date
 select from factor_xroe where date=2019.09.10
 select max date from neu
+
+select from neu where date=2019.09.19
+
+select from factor_dfzq_sue where date=2019.09.19
+
 
 select distinct date from neu
 cols factor_ht_quanlity
@@ -26,6 +437,7 @@ tables[]
 select max date from eod
 select max date from .d.data
 
+select from fh
 select from .d.data where date=2019.09.09,w50>0
 
 select max date from iow where index=`000016.SH
@@ -38,15 +450,13 @@ select from trade
 (select qdate:date,wind_code,list_days from eod where date within 2019.09.01 2019.09.10)lj `qdate xkey select from tds
 
 `date xasc select date,ic,rank_ic,qrank_ic,rank_ac from fa_neu_w where factor=`EGP_TFW_fill
+select from fa_neu_w
 
 `date xasc select  from fa_neu_w where factor=`NP_SQ
 
 select from tds
 meta tds
 tds
-
-
-
 
 
 
